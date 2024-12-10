@@ -31,6 +31,6 @@ func ConnectToBD(cfg *config.Config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	logrus.Info("Successfully connected to BD")
+	logrus.Info("Successfully connected to DB")
 	return db, nil
 }

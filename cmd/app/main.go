@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	cfg := config.LoadConfig()
-	log := logger.New(logger.EnvLocal)
+	cfg := config.LoadConfig()         // getting config from .env
+	log := logger.New(logger.EnvLocal) // creating pretty logger
 
 	if server, err := di.InitializeAPI(cfg, log); err == nil {
 		server.Start(cfg, log)
