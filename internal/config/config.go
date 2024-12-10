@@ -18,9 +18,9 @@ func LoadConfig() *Config {
 		log.Fatal(err)
 	}
 
-	srv := configServer.InitServerConfig()
-
 	db := configDB.InitDBConfig()
+
+	srv := configServer.InitServerConfig()
 
 	return &Config{
 		DB:     db,
