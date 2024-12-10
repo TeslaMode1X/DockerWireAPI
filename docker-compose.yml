@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  db:
+    container_name: db_test
+    restart: always
+    image: postgres
+    env_file:
+      - ./.env
+    ports:
+      - "5433:5432"
+    networks:
+      - proxynet
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./cmd/migrator/migrations:/migrations
+    env_file:
+      - ./.env
+    command: 
+      ["-source", "file://migrations", "-database", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable", "up"]
+    depends_on:
+      - db
+    networks:
+      - proxynet
+
+networks:
+  proxynet:
+    driver: bridge
