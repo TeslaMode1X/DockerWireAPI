@@ -1,6 +1,6 @@
 module github.com/TeslaMode1X/DockerWireAPI
 
-go 1.21
+go 1.23.1
 
 require (
 	github.com/fatih/color v1.18.0
