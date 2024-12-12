@@ -9,12 +9,25 @@ package di
 import (
 	"github.com/TeslaMode1X/DockerWireAPI/internal/api"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/config"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/db"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/auth"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/user"
 	"log/slog"
 )
 
 // Injectors from wire.go:
 
 func InitializeAPI(cfg *config.Config, log *slog.Logger) (*api.ServerHTTP, error) {
-	serverHTTP := api.NewServeHTTP(cfg)
+	sqlDB, err := db.ConnectToDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+	repository := auth.ProvideSetRepository(sqlDB)
+	userRepository := user.ProvideUserRepository(sqlDB)
+	service := auth.ProvideSetService(repository, userRepository)
+	handler := auth.ProvideSetHandler(service, log)
+	userService := user.ProvideUserService(userRepository)
+	userHandler := user.ProvideUserHandler(userService, log)
+	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler)
 	return serverHTTP, nil
 }

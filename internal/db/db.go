@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/config"
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"log"
 )
 
-func ConnectToBD(cfg *config.Config) (*sql.DB, error) {
+func ConnectToDB(cfg *config.Config) (*sql.DB, error) {
 	addr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.DB.Host,
