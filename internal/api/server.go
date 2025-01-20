@@ -47,7 +47,7 @@ func NewServeHTTP(cfg *config.Config, authHdl *auth.Handler, userHdl *user.Handl
 }
 
 func (sh *ServerHTTP) Start(cfg *config.Config, log *slog.Logger) {
-	fmt.Print(fmt.Sprintf("Port is %s", cfg.Server.Port))
+	fmt.Print(fmt.Sprintf("Port is %s ", cfg.Server.Port))
 	log.Info(fmt.Sprintf("Starting server on port: %s", cfg.Server.Port))
 	addr := cfg.Server.Addr + ":" + cfg.Server.Port
 	err := http.ListenAndServe(addr, sh.router)
