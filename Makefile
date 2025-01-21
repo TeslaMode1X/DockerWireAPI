@@ -3,6 +3,6 @@ run: build
 build:
 	go build -o bin/app cmd/app/main.go
 wire:
-	cd ./internal/di && google-wire
+	cd ./internal/di && wire
 docker:
-	docker-compose up --build -d
+	docker compose up --build

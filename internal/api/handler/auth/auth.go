@@ -65,7 +65,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteError(w, r, http.StatusCreated, userCreated)
+	response.WriteJson(w, r, http.StatusCreated, userCreated)
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
