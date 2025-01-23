@@ -20,10 +20,15 @@ type Repository struct {
 func (r *Repository) Register(ctx context.Context, user model.Registration) (uuid.UUID, error) {
 	const op = "repo.user.Register"
 
-	stmt, err := r.DB.PrepareContext(ctx, "INSERT INTO users (username, password, role, created_at) VALUES($1, $2, $3, $4)")
+	id, err := uuid.NewV4()
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	stmt, err := r.DB.PrepareContext(ctx, "INSERT INTO users (id, username, password, role, created_at) VALUES($1, $2, $3, $4, $5)")
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, user.Username, user.Password, user.Role, time.Now())
+	_, err = stmt.ExecContext(ctx, id, user.Username, user.Password, user.Role, time.Now())
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
