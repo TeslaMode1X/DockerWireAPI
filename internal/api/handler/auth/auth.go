@@ -76,9 +76,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader != "" {
-		h.Log.Error("already logged in")
+	cookie, err := r.Cookie("jwt-token")
+	if err == nil {
 		response.WriteError(w, r, http.StatusUnauthorized, errors.New("already logged in"))
 		return
 	}
@@ -105,7 +104,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // token expires in 24 hours
+		"exp":     time.Now().Add(time.Hour * 1).Unix(), // token expires in 1 hour
 		"user_id": userID,
 	})
 	tokenString, err := token.SignedString([]byte("your-secret-key"))
@@ -114,7 +113,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer "+tokenString)
+	cookie = &http.Cookie{
+		Name:     "jwt-token",
+		Value:    tokenString,
+		Expires:  time.Now().Add(time.Hour * 24),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, cookie)
 
 	response.WriteJson(w, r, http.StatusOK, userID.String())
 }
