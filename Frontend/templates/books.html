@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <title>Books</title>
+</head>
+<body>
+<div class="container mt-5">
+    <h1 class="text-center">Available Books</h1>
+    <div class="row row-cols-1 row-cols-md-3 g-4 mt-4">
+        {{range .}}
+        <div class="col">
+            <div class="card h-100">
+                <img src="/static/book-placeholder.png" class="card-img-top" alt="Book Cover">
+                <div class="card-body">
+                    <h5 class="card-title">{{.}}</h5>
+                    <p class="card-text">Some brief description of the book goes here.</p>
+                    <button class="btn btn-primary w-100">Add to Cart</button>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    <a href="/DockerWireAPI/FrontendreAPI/Frontend/static" class="btn btn-secondary mt-4">Back to Home</a>
+</div>
+</body>
+</html>

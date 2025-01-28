@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <title>Cart</title>
+</head>
+<body>
+<div class="container mt-5">
+    <h1 class="text-center">Your Cart</h1>
+    <div class="list-group mt-4">
+        {{range .}}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1">{{.}}</h5>
+                <small class="text-muted">Some brief description of the book</small>
+            </div>
+            <button class="btn btn-danger btn-sm">Remove</button>
+        </div>
+        {{end}}
+    </div>
+    <div class="mt-4 text-end">
+        <button class="btn btn-success">Proceed to Checkout</button>
+    </div>
+    <a href="/DockerWireAPI/FrontendreAPI/Frontend/static" class="btn btn-secondary mt-4">Back to Home</a>
+</div>
+</body>
+</html>
