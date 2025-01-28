@@ -16,7 +16,7 @@ type Repository struct {
 func (r *Repository) CheckUserExists(ctx context.Context, username string) (bool, error) {
 	const op = "repo.user.CheckUserExists"
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT EXISTS (SELECT 1 FROM users WHERE username = $1);")
+	stmt, err := r.DB.PrepareContext(ctx, "SELECT EXISTS (SELECT 1 FROM users WHERE email = $1);")
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
 	}

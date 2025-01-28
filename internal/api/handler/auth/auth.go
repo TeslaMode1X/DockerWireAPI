@@ -40,7 +40,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var user model.Registration
 	if err := jsonReader.ReadJSON(w, r, &user); err != nil {
 		h.Log.Error("failed to decode json body", err)
-		response.WriteError(w, r, http.StatusBadRequest, (errors.New("failed to decode request body")))
+		response.WriteError(w, r, http.StatusBadRequest, errors.New("failed to decode request body"))
 		return
 	}
 

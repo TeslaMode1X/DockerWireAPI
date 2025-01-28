@@ -11,6 +11,7 @@ import (
 	"github.com/TeslaMode1X/DockerWireAPI/internal/config"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/db"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/auth"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/user"
 	"log/slog"
 )
@@ -28,6 +29,9 @@ func InitializeAPI(cfg *config.Config, log *slog.Logger) (*api.ServerHTTP, error
 	handler := auth.ProvideSetHandler(service, log)
 	userService := user.ProvideUserService(userRepository)
 	userHandler := user.ProvideUserHandler(userService, log)
-	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler)
+	booksRepository := books.ProvideSetRepository(sqlDB)
+	booksService := books.ProvideSetService(booksRepository)
+	booksHandler := books.ProvideSetHandler(booksService, log)
+	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler, booksHandler)
 	return serverHTTP, nil
 }

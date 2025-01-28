@@ -44,7 +44,7 @@ func (s *Service) Register(ctx context.Context, user model.Registration) (uuid.U
 
 func (s *Service) Login(ctx context.Context, user model.Login) (uuid.UUID, error) {
 	const op = "service.user.Login"
-	userExists, err := s.UserRepo.CheckUserExists(ctx, user.Username)
+	userExists, err := s.UserRepo.CheckUserExists(ctx, user.Email)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
