@@ -25,10 +25,10 @@ func (r *Repository) Register(ctx context.Context, user model.Registration) (uui
 		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	stmt, err := r.DB.PrepareContext(ctx, "INSERT INTO users (id, username, password, role, created_at) VALUES($1, $2, $3, $4, $5)")
+	stmt, err := r.DB.PrepareContext(ctx, "INSERT INTO users (id, username, email, password, created_at) VALUES($1, $2, $3, $4, $5)")
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, id, user.Username, user.Password, user.Role, time.Now())
+	_, err = stmt.ExecContext(ctx, id, user.Username, user.Email, user.Password, time.Now())
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -42,12 +42,12 @@ func (r *Repository) Login(ctx context.Context, user model.Login) (uuid.UUID, er
 	var storedPassword string
 	var userID uuid.UUID
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, password FROM users where username = $1")
+	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, password FROM users where email = $1")
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	err = stmt.QueryRowContext(ctx, user.Username).Scan(&userID, &storedPassword)
+	err = stmt.QueryRowContext(ctx, user.Email).Scan(&userID, &storedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return uuid.Nil, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)

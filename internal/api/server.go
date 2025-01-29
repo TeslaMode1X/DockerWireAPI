@@ -3,9 +3,9 @@ package api
 import (
 	"fmt"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/auth"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/books"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/front"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/user"
-
-	//usrHdl "github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/user"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/config"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -19,7 +19,8 @@ type ServerHTTP struct {
 	router http.Handler
 }
 
-func NewServeHTTP(cfg *config.Config, authHdl *auth.Handler, userHdl *user.Handler) *ServerHTTP {
+func NewServeHTTP(cfg *config.Config, authHdl *auth.Handler,
+	userHdl *user.Handler, bookHdl *books.Handler, frontHdl *front.Handler) *ServerHTTP {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -27,10 +28,17 @@ func NewServeHTTP(cfg *config.Config, authHdl *auth.Handler, userHdl *user.Handl
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
 
+	r.Route("/", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			frontHdl.NewFrontEndHandler(r)
+		})
+	})
+
 	r.Route("/api/v1/", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			authHdl.NewAuthHandler(r)
 			userHdl.NewUserHandler(r)
+			bookHdl.NewBookHandler(r)
 		})
 	})
 
