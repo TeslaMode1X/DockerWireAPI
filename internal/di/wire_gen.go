@@ -34,7 +34,7 @@ func InitializeAPI(cfg *config.Config, log *slog.Logger) (*api.ServerHTTP, error
 	booksService := books.ProvideSetService(booksRepository)
 	booksHandler := books.ProvideSetHandler(booksService, log)
 	v := front.ProvideSetTemplates()
-	frontService := front.ProvideSetService(userRepository, v)
+	frontService := front.ProvideSetService(userRepository, booksRepository, v)
 	frontHandler := front.ProvideSetHandler(frontService, log)
 	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler, booksHandler, frontHandler)
 	return serverHTTP, nil

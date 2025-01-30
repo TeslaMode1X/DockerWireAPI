@@ -10,6 +10,7 @@ import (
 
 type Service struct {
 	UserRepo  interfaces.UserRepository
+	BookRepo  interfaces.BookRepository
 	Templates map[string]*template.Template
 }
 
@@ -21,9 +22,15 @@ func (s *Service) MainPage(ctx context.Context, page string) (string, error) {
 		return "", errors.Wrap(errors.New("couldn't load template"), op)
 	}
 
+	allBooks, err := s.BookRepo.GetAllBooks(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, op)
+	}
+
 	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, map[string]interface{}{
+	err = tmpl.Execute(&buf, map[string]interface{}{
 		"Title": "Welcome to " + page,
+		"Books": allBooks,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, op)
