@@ -7,11 +7,20 @@
     <title>{{ .Title }}</title>
 </head>
 <body>
+
+{{if .Error}}
+<div id="error-message" class="alert alert-danger">{{.Error}}</div>
+{{end}}
+{{if .Success}}
+<div id="success-message" class="alert alert-success">{{.Success}}</div>
+{{end}}
+
 <div class="container mt-5">
     <h1 class="text-center">Welcome to the Bookstore!</h1>
 
     <nav class="nav justify-content-center mb-4">
         <a class="nav-link" href="/register">Register</a>
+        <a class="nav-link" href="/login">Login</a>
         <a class="nav-link" href="/books">View Books</a>
         <a class="nav-link" href="/cart">Cart</a>
     </nav>
@@ -37,5 +46,18 @@
     </div>
 </div>
 
+<script>
+    setTimeout(function() {
+        let errorMessage = document.getElementById("error-message");
+        let successMessage = document.getElementById("success-message");
+
+        if (errorMessage) {
+            errorMessage.style.display = "none";
+        }
+        if (successMessage) {
+            successMessage.style.display = "none";
+        }
+    }, 3000);
+</script>
 </body>
 </html>
