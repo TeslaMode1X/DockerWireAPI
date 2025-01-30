@@ -16,6 +16,7 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
+
   migrate:
     image: migrate/migrate
     volumes:
@@ -27,6 +28,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - proxynet
+
+  books-migrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile_books_migrate
+    env_file:
+      - ./.env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     networks:
       - proxynet
 
