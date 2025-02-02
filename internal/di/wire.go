@@ -10,6 +10,7 @@ import (
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/auth"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/front"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/order"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/user"
 	"github.com/google/wire"
 	"log/slog"
@@ -21,6 +22,7 @@ func InitializeAPI(cfg *config.Config, log *slog.Logger) (*api.ServerHTTP, error
 		auth.ProviderSet,
 		books.ProviderSet,
 		front.ProviderSet,
+		order.ProviderSet,
 
 		db.ConnectToDB,
 		api.NewServeHTTP,
