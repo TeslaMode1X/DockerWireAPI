@@ -4,6 +4,7 @@ import (
 	"context"
 	orderModel "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/order"
 	orderModels "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
+	"github.com/gofrs/uuid"
 	"net/http"
 )
 
@@ -15,6 +16,8 @@ type (
 		CheckOrderExists(ctx context.Context, userID string) (bool, error)
 		AlterUserOrder(ctx context.Context, userID string) error
 		AddOrderItemIntoOrder(ctx context.Context, userID string, items *[]orderModels.OrderItem) error
+		GetOrderItemsFromOrderID(ctx context.Context, orderID string) (*[]orderModels.OrderItemFull, error)
+		RemoveCartItem(ctx context.Context, userID string, bookID uuid.UUID) error
 	}
 
 	OrderService interface {

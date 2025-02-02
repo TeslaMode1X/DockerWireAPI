@@ -13,6 +13,7 @@ import (
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/auth"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/front"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/order"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/providers/user"
 	"log/slog"
 )
@@ -36,6 +37,9 @@ func InitializeAPI(cfg *config.Config, log *slog.Logger) (*api.ServerHTTP, error
 	v := front.ProvideSetTemplates()
 	frontService := front.ProvideSetService(userRepository, repository, booksRepository, v)
 	frontHandler := front.ProvideSetHandler(frontService, log)
-	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler, booksHandler, frontHandler)
+	orderRepository := order.ProvideUserRepository(sqlDB)
+	orderService := order.ProvideUserService(orderRepository)
+	orderHandler := order.ProvideUserHandler(orderService, log)
+	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler, booksHandler, frontHandler, orderHandler)
 	return serverHTTP, nil
 }

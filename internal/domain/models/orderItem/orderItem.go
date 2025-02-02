@@ -7,6 +7,13 @@ type OrderItem struct {
 	Quantity int       `json:"quantity"`
 }
 
+type OrderItemFull struct {
+	ID       uuid.UUID `json:"id"`
+	BookID   uuid.UUID `json:"book_id"`
+	Quantity int       `json:"quantity"`
+	Price    float64   `json:"price"`
+}
+
 type CreateOrderItemRequest struct {
 	Items []OrderItem `json:"items"`
 }
