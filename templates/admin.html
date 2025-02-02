@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{{ .Title }}</title>
+</head>
+<body>
+
+{{if .Error}}
+<div id="error-message" class="alert alert-danger">{{.Error}}</div>
+{{end}}
+{{if .Success}}
+<div id="success-message" class="alert alert-success">{{.Success}}</div>
+{{end}}
+
+<div class="container mt-5">
+    <h1 class="text-center">Admin Panel - Book Management</h1>
+
+    <form method="GET" action="/admin" class="mb-3 d-flex">
+        <input type="text" name="search" placeholder="Search for books..." class="form-control me-2" value="{{ .SearchQuery }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    <div class="dropdown mb-3">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+            Sort By
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+            <li><a class="dropdown-item" href="/admin/?sort=name">By Name</a></li>
+            <li><a class="dropdown-item" href="/admin/?sort=price">By Price</a></li>
+            <li><a class="dropdown-item" href="/admin/?sort=stock">By Stock</a></li>
+        </ul>
+    </div>
+    <div class="d-flex justify-content-between mb-4">
+        <a href="/" class="btn btn-secondary">Back to Main Page</a>
+    </div>
+
+    <div class="row">
+        {{ range .Books }}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <form action="/admin/edit/{{ .ID }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Title:</label>
+                            <input type="text" name="title" class="form-control"
+                                   value="{{ .Title }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Author:</label>
+                            <input type="text" name="author" class="form-control"
+                                   value="{{ .Author }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price:</label>
+                            <input type="number" name="price" class="form-control"
+                                   value="{{ printf "%.2f" .Price }}" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stock:</label>
+                            <input type="number" name="stock" class="form-control"
+                                   value="{{ .Stock }}" min="0" required>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+
+                    <form action="/admin/delete/{{ .ID }}" method="POST" class="mt-2">
+                        <button type="submit" class="btn btn-danger justify-content-between">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {{ else }}
+        <p class="text-center">No books available.</p>
+        {{ end }}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

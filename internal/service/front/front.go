@@ -205,3 +205,107 @@ func (s *Service) ProcessRegistration(ctx context.Context, form url.Values) erro
 
 	return nil
 }
+
+func (s *Service) AdminPage(ctx context.Context, params mainPageParams.Model) (string, error) {
+	const op = "service.front.AdminPage"
+
+	tmpl, ok := s.Templates[params.Page]
+	if !ok {
+		return "", errors.Wrap(errors.New("couldn't load template"), op)
+	}
+
+	allBooks, err := s.BookRepo.GetAllBooks(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, op)
+	}
+
+	var filteredBooks []modelB.Book
+	if params.SearchQuery != "" {
+		for _, book := range *allBooks {
+			if strings.Contains(strings.ToLower(book.Title), strings.ToLower(params.SearchQuery)) {
+				filteredBooks = append(filteredBooks, book)
+			}
+		}
+	} else {
+		filteredBooks = *allBooks
+	}
+
+	switch params.SortBy {
+	case "name":
+		sort.Slice(filteredBooks, func(i, j int) bool {
+			return strings.ToLower(filteredBooks[i].Title) < strings.ToLower(filteredBooks[j].Title)
+		})
+	case "price":
+		sort.Slice(filteredBooks, func(i, j int) bool {
+			return filteredBooks[i].Price < filteredBooks[j].Price
+		})
+	case "stock":
+		sort.Slice(filteredBooks, func(i, j int) bool {
+			return filteredBooks[i].Stock < filteredBooks[j].Stock
+		})
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, map[string]interface{}{
+		"Title":       "Admin Panel",
+		"Books":       filteredBooks,
+		"Error":       params.ErrorMessage,
+		"Success":     params.SuccessMessage,
+		"SearchQuery": params.SearchQuery,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, op)
+	}
+
+	return buf.String(), nil
+}
+
+func (s *Service) EditBook(ctx context.Context, bookID string, book *modelB.Book) error {
+	const op = "service.front.EditBook"
+
+	jsonData, err := json.Marshal(book)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	req, err := http.NewRequest("PUT", "http://localhost:8080/api/v1/book/"+bookID, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(errors.New("failed to update book"), op)
+	}
+
+	return nil
+}
+
+func (s *Service) DeleteBook(ctx context.Context, bookID string) error {
+	const op = "service.front.DeleteBook"
+
+	req, err := http.NewRequest("DELETE", "http://localhost:8080/api/v1/book/"+bookID, nil)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Wrap(errors.New("failed to delete book"), op)
+	}
+
+	return nil
+}
