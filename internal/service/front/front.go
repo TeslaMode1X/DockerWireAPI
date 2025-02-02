@@ -100,7 +100,7 @@ func (s *Service) LoginPage(ctx context.Context, page, errorMessage, successMess
 	return buf.String(), nil
 }
 
-func (s *Service) ProcessLogin(ctx context.Context, form url.Values) error {
+func (s *Service) ProcessLogin(ctx context.Context, w http.ResponseWriter, r *http.Request, form url.Values) error {
 	const op = "service.front.ProcessLogin"
 
 	email := form.Get("email")
@@ -124,6 +124,11 @@ func (s *Service) ProcessLogin(ctx context.Context, form url.Values) error {
 	if err != nil {
 		return errors.New("request_failed")
 	}
+
+	for _, cookie := range r.Cookies() {
+		req.AddCookie(cookie)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -133,8 +138,16 @@ func (s *Service) ProcessLogin(ctx context.Context, form url.Values) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return errors.New("already_logged_in")
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("invalid_credentials")
+	}
+
+	for _, cookie := range resp.Cookies() {
+		http.SetCookie(w, cookie)
 	}
 
 	return nil

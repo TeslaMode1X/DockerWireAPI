@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
+	middle "github.com/TeslaMode1X/DockerWireAPI/internal/middleware"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"log/slog"
@@ -24,6 +25,10 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 
 		r.Post("/register/front", h.RegistrationFront)
 		r.Post("/login/front", h.LoginFront)
+
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(middle.AdminMiddleware)
+		})
 	})
 }
 
@@ -97,7 +102,7 @@ func (h *Handler) LoginFront(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Svc.ProcessLogin(r.Context(), r.Form)
+	err = h.Svc.ProcessLogin(r.Context(), w, r, r.Form)
 	if err != nil {
 		http.Redirect(w, r, "/login?error="+err.Error(), http.StatusSeeOther)
 		return

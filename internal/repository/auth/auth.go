@@ -36,31 +36,32 @@ func (r *Repository) Register(ctx context.Context, user model.Registration) (uui
 	return id, nil
 }
 
-func (r *Repository) Login(ctx context.Context, user model.Login) (uuid.UUID, error) {
+func (r *Repository) Login(ctx context.Context, user model.Login) (uuid.UUID, int, error) {
 	const op = "repo.user.Login"
 
 	var storedPassword string
 	var userID uuid.UUID
+	var role int
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, password FROM users where email = $1")
+	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, password, role FROM users where email = $1")
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, 0, err
 	}
 
-	err = stmt.QueryRowContext(ctx, user.Email).Scan(&userID, &storedPassword)
+	err = stmt.QueryRowContext(ctx, user.Email).Scan(&userID, &storedPassword, &role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return uuid.Nil, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
+			return uuid.Nil, 0, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
 		}
-		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return uuid.Nil, 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	hashedPassword := sha256.Sum256([]byte(user.Password))
 	hashedPasswordHex := hex.EncodeToString(hashedPassword[:])
 
 	if storedPassword != hashedPasswordHex {
-		return uuid.Nil, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
+		return uuid.Nil, 0, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
 	}
 
-	return userID, nil
+	return userID, role, nil
 }

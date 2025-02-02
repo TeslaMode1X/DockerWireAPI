@@ -19,7 +19,7 @@ type (
 		RegistrationPage(ctx context.Context, page, errorMessage, successMessage string) (string, error)
 		LoginPage(ctx context.Context, page, errorMessage, successMessage string) (string, error)
 		ProcessRegistration(ctx context.Context, form url.Values) error
-		ProcessLogin(ctx context.Context, form url.Values) error
+		ProcessLogin(ctx context.Context, w http.ResponseWriter, r *http.Request, form url.Values) error
 	}
 )
 
