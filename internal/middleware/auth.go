@@ -16,20 +16,29 @@ func WithAuth(handler http.Handler) http.Handler {
 		tokenString, err := getTokenFromRequest(r)
 		if err != nil {
 			permissionDenied(w, r, "unable to get token from request")
+			return
 		}
 
 		token, err := validateToken(tokenString)
 		if err != nil || !token.Valid {
 			permissionDenied(w, r, "invalid token")
+			return
 		}
 
 		userID, err := getUserIDFromToken(token)
 		if err != nil {
 			permissionDenied(w, r, "unable to get user ID from token")
+			return
 		}
 
-		// Store the user ID in the request context
+		role, err := getRoleFromToken(token)
+		if err != nil {
+			permissionDenied(w, r, "unable to get user role from token")
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), "user_id", userID)
+		ctx = context.WithValue(ctx, "role", role)
 		r = r.WithContext(ctx)
 
 		handler.ServeHTTP(w, r)
@@ -39,6 +48,20 @@ func WithAuth(handler http.Handler) http.Handler {
 func permissionDenied(w http.ResponseWriter, r *http.Request, error string) {
 	response.WriteError(w, r, http.StatusUnauthorized, slog.String("error", error))
 	return
+}
+
+func getRoleFromToken(token *jwt.Token) (string, error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("invalid token claims")
+	}
+
+	role, ok := claims["role"].(string)
+	if !ok {
+		return "", errors.New("invalid user role in token")
+	}
+
+	return role, nil
 }
 
 func getTokenFromRequest(r *http.Request) (string, error) {

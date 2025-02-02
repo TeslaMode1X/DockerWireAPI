@@ -89,7 +89,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := h.Svc.Login(context.Background(), userCurrent)
+	userID, role, err := h.Svc.Login(context.Background(), userCurrent)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			response.WriteError(w, r, http.StatusNotFound, service.ErrNotFound)
@@ -106,6 +106,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"exp":     time.Now().Add(time.Hour * 1).Unix(), // token expires in 1 hour
 		"user_id": userID,
+		"role":    role,
 	})
 	tokenString, err := token.SignedString([]byte("your-secret-key"))
 	if err != nil {
@@ -116,8 +117,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	cookie = &http.Cookie{
 		Name:     "jwt-token",
 		Value:    tokenString,
-		Expires:  time.Now().Add(time.Hour * 24),
+		Expires:  time.Now().Add(time.Hour * 1),
 		HttpOnly: true,
+		Secure:   false,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, cookie)
 

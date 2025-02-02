@@ -42,20 +42,20 @@ func (s *Service) Register(ctx context.Context, user model.Registration) (uuid.U
 	return id, err
 }
 
-func (s *Service) Login(ctx context.Context, user model.Login) (uuid.UUID, error) {
+func (s *Service) Login(ctx context.Context, user model.Login) (uuid.UUID, int, error) {
 	const op = "service.user.Login"
 	userExists, err := s.UserRepo.CheckUserExists(ctx, user.Email)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("%s: %w", op, err)
+		return uuid.Nil, 0, fmt.Errorf("%s: %w", op, err)
 	}
 	if !userExists {
-		return uuid.Nil, fmt.Errorf("%s: %w", op, service.ErrNotFound)
+		return uuid.Nil, 0, fmt.Errorf("%s: %w", op, service.ErrNotFound)
 	}
 
-	id, err := s.AuthRepo.Login(ctx, user)
+	id, role, err := s.AuthRepo.Login(ctx, user)
 	if err != nil {
-		return id, fmt.Errorf("%s: %w", op, err)
+		return id, role, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return id, err
+	return id, role, err
 }

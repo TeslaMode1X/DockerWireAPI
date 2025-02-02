@@ -3,17 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="/static/bootstrap.min.css" rel="stylesheet">
-    <title>Bookstore Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{{ .Title }}</title>
 </head>
 <body>
-<div class="container text-center mt-5">
-    <h1>Welcome to the Bookstore!</h1>
-    <nav class="nav justify-content-center">
+
+{{if .Error}}
+<div id="error-message" class="alert alert-danger">{{.Error}}</div>
+{{end}}
+{{if .Success}}
+<div id="success-message" class="alert alert-success">{{.Success}}</div>
+{{end}}
+
+<div class="container mt-5">
+    <h1 class="text-center">Welcome to the Bookstore!</h1>
+
+    <nav class="nav justify-content-center mb-4">
         <a class="nav-link" href="/register">Register</a>
+        <a class="nav-link" href="/login">Login</a>
         <a class="nav-link" href="/books">View Books</a>
         <a class="nav-link" href="/cart">Cart</a>
     </nav>
+
+    <form method="GET" action="/" class="mb-3 d-flex">
+        <input type="text" name="search" placeholder="Search for books..." class="form-control me-2" value="{{ .SearchQuery }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    <div class="dropdown mb-3">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+            Sort By
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+            <li><a class="dropdown-item" href="/?sort=name">By Name</a></li>
+            <li><a class="dropdown-item" href="/?sort=price">By Price</a></li>
+            <li><a class="dropdown-item" href="/?sort=stock">By Stock</a></li>
+        </ul>
+    </div>
+
+
+    <div class="row">
+        {{ range .Books }}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ .Title }}</h5>
+                    <p class="card-text">Author: <strong>{{ .Author }}</strong></p>
+                    <p class="card-text">Price: <strong>${{ printf "%.2f" .Price }}</strong></p>
+                    <p class="card-text text-muted">Stock: {{ .Stock }} left</p>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/cart/add?id={{ .ID }}" class="btn btn-primary">Add to Cart</a>
+                </div>
+            </div>
+        </div>
+        {{ else }}
+        <p class="text-center">No books available at the moment.</p>
+        {{ end }}
+    </div>
 </div>
+
+<script>
+    setTimeout(function() {
+        let errorMessage = document.getElementById("error-message");
+        let successMessage = document.getElementById("success-message");
+
+        if (errorMessage) {
+            errorMessage.style.display = "none";
+        }
+        if (successMessage) {
+            successMessage.style.display = "none";
+        }
+    }, 3000);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

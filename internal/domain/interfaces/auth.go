@@ -10,14 +10,14 @@ import (
 type (
 	AuthRepository interface {
 		Register(ctx context.Context, user model.Registration) (uuid.UUID, error)
-		Login(ctx context.Context, user model.Login) (uuid.UUID, error)
+		Login(ctx context.Context, user model.Login) (uuid.UUID, int, error)
 	}
 )
 
 type (
 	AuthService interface {
 		Register(ctx context.Context, user model.Registration) (uuid.UUID, error)
-		Login(ctx context.Context, user model.Login) (uuid.UUID, error)
+		Login(ctx context.Context, user model.Login) (uuid.UUID, int, error)
 	}
 )
 

@@ -38,10 +38,12 @@ func ProvideSetHandler(svc interfaces.FrontService, log *slog.Logger) *frontHdl.
 	return hdl
 }
 
-func ProvideSetService(repo interfaces.UserRepository, templates map[string]*template.Template) *frontSvc.Service {
+func ProvideSetService(userRepo interfaces.UserRepository, authRepo interfaces.AuthRepository, bookRepo interfaces.BookRepository, templates map[string]*template.Template) *frontSvc.Service {
 	svcOnce.Do(func() {
 		svc = &frontSvc.Service{
-			UserRepo:  repo,
+			UserRepo:  userRepo,
+			AuthRepo:  authRepo,
+			BookRepo:  bookRepo,
 			Templates: templates,
 		}
 	})
@@ -51,7 +53,9 @@ func ProvideSetService(repo interfaces.UserRepository, templates map[string]*tem
 
 func ProvideSetTemplates() map[string]*template.Template {
 	return map[string]*template.Template{
-		"main":  template.Must(template.ParseFiles("templates/main.html")),
-		"about": template.Must(template.ParseFiles("templates/about.html")),
+		"main":         template.Must(template.ParseFiles("templates/main.html")),
+		"about":        template.Must(template.ParseFiles("templates/about.html")),
+		"login":        template.Must(template.ParseFiles("templates/login.html")),
+		"registration": template.Must(template.ParseFiles("templates/registration.html")),
 	}
 }

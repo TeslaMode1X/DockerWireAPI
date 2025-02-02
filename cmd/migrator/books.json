@@ -1,0 +1,140 @@
+[
+  {
+    "title": "The Go Programming Language",
+    "author": "Alan A. A. Donovan, Brian W. Kernighan",
+    "price": 39.99,
+    "stock": 10
+  },
+  {
+    "title": "Clean Code",
+    "author": "Robert C. Martin",
+    "price": 34.95,
+    "stock": 8
+  },
+  {
+    "title": "The Pragmatic Programmer",
+    "author": "Andrew Hunt, David Thomas",
+    "price": 42.50,
+    "stock": 5
+  },
+  {
+    "title": "Design Patterns: Elements of Reusable Object-Oriented Software",
+    "author": "Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides",
+    "price": 54.95,
+    "stock": 15
+  },
+  {
+    "title": "Refactoring: Improving the Design of Existing Code",
+    "author": "Martin Fowler",
+    "price": 49.99,
+    "stock": 12
+  },
+  {
+    "title": "Introduction to Algorithms",
+    "author": "Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein",
+    "price": 79.99,
+    "stock": 6
+  },
+  {
+    "title": "Code Complete",
+    "author": "Steve McConnell",
+    "price": 44.99,
+    "stock": 14
+  },
+  {
+    "title": "You Don't Know JS",
+    "author": "Kyle Simpson",
+    "price": 29.99,
+    "stock": 20
+  },
+  {
+    "title": "The Mythical Man-Month",
+    "author": "Frederick P. Brooks Jr.",
+    "price": 39.95,
+    "stock": 18
+  },
+  {
+    "title": "Designing Data-Intensive Applications",
+    "author": "Martin Kleppmann",
+    "price": 59.99,
+    "stock": 9
+  },
+  {
+    "title": "Patterns of Enterprise Application Architecture",
+    "author": "Martin Fowler",
+    "price": 45.99,
+    "stock": 13
+  },
+  {
+    "title": "The Art of Computer Programming",
+    "author": "Donald E. Knuth",
+    "price": 89.99,
+    "stock": 4
+  },
+  {
+    "title": "The Clean Coder: A Code of Conduct for Professional Programmers",
+    "author": "Robert C. Martin",
+    "price": 36.95,
+    "stock": 7
+  },
+  {
+    "title": "The Complete Software Developer's Career Guide",
+    "author": "John Sonmez",
+    "price": 29.99,
+    "stock": 16
+  },
+  {
+    "title": "Eloquent JavaScript",
+    "author": "Marijn Haverbeke",
+    "price": 29.95,
+    "stock": 11
+  },
+  {
+    "title": "Practical Object-Oriented Design in Ruby",
+    "author": "Sandi Metz",
+    "price": 34.95,
+    "stock": 8
+  },
+  {
+    "title": "Groovy in Action",
+    "author": "Dierk Koenig, Paul King",
+    "price": 49.99,
+    "stock": 5
+  },
+  {
+    "title": "JavaScript: The Good Parts",
+    "author": "Douglas Crockford",
+    "price": 29.99,
+    "stock": 17
+  },
+  {
+    "title": "Effective Java",
+    "author": "Joshua Bloch",
+    "price": 47.95,
+    "stock": 10
+  },
+  {
+    "title": "Head First Design Patterns",
+    "author": "Eric Freeman, Elisabeth Robson",
+    "price": 39.95,
+    "stock": 6
+  },
+  {
+    "title": "Learning Python",
+    "author": "Mark Lutz",
+    "price": 59.99,
+    "stock": 13
+  },
+  {
+    "title": "Python Crash Course",
+    "author": "Eric Matthes",
+    "price": 34.95,
+    "stock": 22
+  },
+  {
+    "title": "The Clean Architecture",
+    "author": "Robert C. Martin",
+    "price": 40.99,
+    "stock": 9
+  }
+]
