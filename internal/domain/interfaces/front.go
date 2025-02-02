@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
 	"net/http"
 	"net/url"
 )
@@ -14,7 +15,7 @@ type (
 
 type (
 	FrontService interface {
-		MainPage(ctx context.Context, page, errorMessage, successMessage string) (string, error)
+		MainPage(ctx context.Context, model mainPageParams.Model) (string, error)
 		RegistrationPage(ctx context.Context, page, errorMessage, successMessage string) (string, error)
 		LoginPage(ctx context.Context, page, errorMessage, successMessage string) (string, error)
 		ProcessRegistration(ctx context.Context, form url.Values) error

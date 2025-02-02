@@ -3,6 +3,7 @@ package front
 import (
 	"context"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"log/slog"
@@ -34,10 +35,15 @@ func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 		slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
 
-	errorMessage := r.URL.Query().Get("error")
-	successMessage := r.URL.Query().Get("success")
+	params := mainPageParams.Model{
+		Page:           "main",
+		ErrorMessage:   r.URL.Query().Get("error"),
+		SuccessMessage: r.URL.Query().Get("success"),
+		SearchQuery:    r.URL.Query().Get("search"),
+		SortBy:         r.URL.Query().Get("sort"),
+	}
 
-	mainPageHTML, err := h.Svc.MainPage(context.Background(), "main", errorMessage, successMessage)
+	mainPageHTML, err := h.Svc.MainPage(r.Context(), params)
 	if err != nil {
 		h.Log.Error("Error in front page", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

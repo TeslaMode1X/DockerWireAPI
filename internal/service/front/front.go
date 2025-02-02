@@ -8,10 +8,13 @@ import (
 	"encoding/json"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	model "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/auth"
+	modelB "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/books"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
 	"github.com/pkg/errors"
 	"html/template"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -22,10 +25,10 @@ type Service struct {
 	Templates map[string]*template.Template
 }
 
-func (s *Service) MainPage(ctx context.Context, page, errorMessage, successMessage string) (string, error) {
+func (s *Service) MainPage(ctx context.Context, params mainPageParams.Model) (string, error) {
 	const op = "service.front.MainPage"
 
-	var tmpl, ok = s.Templates[page]
+	tmpl, ok := s.Templates[params.Page]
 	if !ok {
 		return "", errors.Wrap(errors.New("couldn't load template"), op)
 	}
@@ -35,12 +38,39 @@ func (s *Service) MainPage(ctx context.Context, page, errorMessage, successMessa
 		return "", errors.Wrap(err, op)
 	}
 
+	var filteredBooks []modelB.Book
+	if params.SearchQuery != "" {
+		for _, book := range *allBooks {
+			if strings.Contains(strings.ToLower(book.Title), strings.ToLower(params.SearchQuery)) {
+				filteredBooks = append(filteredBooks, book)
+			}
+		}
+	} else {
+		filteredBooks = *allBooks
+	}
+
+	switch params.SortBy {
+	case "name":
+		sort.Slice(filteredBooks, func(i, j int) bool {
+			return strings.ToLower(filteredBooks[i].Title) < strings.ToLower(filteredBooks[j].Title)
+		})
+	case "price":
+		sort.Slice(filteredBooks, func(i, j int) bool {
+			return filteredBooks[i].Price < filteredBooks[j].Price
+		})
+	case "stock":
+		sort.Slice(filteredBooks, func(i, j int) bool {
+			return filteredBooks[i].Stock < filteredBooks[j].Stock
+		})
+	}
+
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, map[string]interface{}{
-		"Title":   "Welcome to " + page,
-		"Books":   allBooks,
-		"Error":   errorMessage,
-		"Success": successMessage,
+		"Title":       "Welcome to " + params.Page,
+		"Books":       filteredBooks,
+		"Error":       params.ErrorMessage,
+		"Success":     params.SuccessMessage,
+		"SearchQuery": params.SearchQuery,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, op)
