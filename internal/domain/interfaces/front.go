@@ -4,6 +4,8 @@ import (
 	"context"
 	modelB "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
+	orderModels "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
+	"github.com/gofrs/uuid"
 	"net/http"
 	"net/url"
 )
@@ -24,6 +26,9 @@ type (
 		AdminPage(ctx context.Context, params mainPageParams.Model) (string, error)
 		EditBook(ctx context.Context, bookID string, book *modelB.Book) error
 		DeleteBook(ctx context.Context, bookID string) error
+		GetCartItems(ctx context.Context, userId string) (*[]orderModels.OrderItemFull, error)
+		AddCartItems(ctx context.Context, userID string, items *[]orderModels.OrderItem) error
+		RemoveCartItem(ctx context.Context, userID string, bookID uuid.UUID) error
 	}
 )
 
@@ -37,5 +42,8 @@ type (
 		AdminPage(w http.ResponseWriter, r *http.Request)
 		EditBookFront(w http.ResponseWriter, r *http.Request)
 		DeleteBookFront(w http.ResponseWriter, r *http.Request)
+		GetCartItems(w http.ResponseWriter, r *http.Request)
+		AddCartItems(w http.ResponseWriter, r *http.Request)
+		RemoveCartItem(w http.ResponseWriter, r *http.Request)
 	}
 )

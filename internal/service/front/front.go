@@ -6,10 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	model "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/auth"
 	modelB "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
+	orderModels "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
+	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 	"html/template"
 	"net/http"
@@ -22,6 +25,7 @@ type Service struct {
 	UserRepo  interfaces.UserRepository
 	AuthRepo  interfaces.AuthRepository
 	BookRepo  interfaces.BookRepository
+	OrderRepo interfaces.OrderRepository
 	Templates map[string]*template.Template
 }
 
@@ -305,6 +309,58 @@ func (s *Service) DeleteBook(ctx context.Context, bookID string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.Wrap(errors.New("failed to delete book"), op)
+	}
+
+	return nil
+}
+
+func (s *Service) GetCartItems(ctx context.Context, userId string) (*[]orderModels.OrderItemFull, error) {
+	const op = "service.front.GetCartItems"
+
+	exists, err := s.OrderRepo.CheckOrderExists(ctx, userId)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+	if !exists {
+		err = s.OrderRepo.CreateUserOrder(ctx, userId)
+		fmt.Println(err)
+		if err != nil {
+			return nil, errors.Wrap(err, op)
+		}
+	}
+
+	userOrder, err := s.OrderRepo.GetUsersOrder(ctx, userId)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	orderID := userOrder.ID.String()
+
+	orderItems, err := s.OrderRepo.GetOrderItemsFromOrderID(ctx, orderID)
+	if err != nil {
+		return nil, errors.Wrap(err, op)
+	}
+
+	return orderItems, nil
+}
+
+func (s *Service) AddCartItems(ctx context.Context, userID string, items *[]orderModels.OrderItem) error {
+	const op = "service.front.AddCartItems"
+
+	err := s.OrderRepo.AddOrderItemIntoOrder(ctx, userID, items)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	return nil
+}
+
+func (s *Service) RemoveCartItem(ctx context.Context, userID string, bookID uuid.UUID) error {
+	const op = "service.front.RemoveCartItem"
+
+	err := s.OrderRepo.RemoveCartItem(ctx, userID, bookID)
+	if err != nil {
+		return errors.Wrap(err, op)
 	}
 
 	return nil

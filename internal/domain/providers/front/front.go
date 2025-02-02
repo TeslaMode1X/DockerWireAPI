@@ -38,12 +38,13 @@ func ProvideSetHandler(svc interfaces.FrontService, log *slog.Logger) *frontHdl.
 	return hdl
 }
 
-func ProvideSetService(userRepo interfaces.UserRepository, authRepo interfaces.AuthRepository, bookRepo interfaces.BookRepository, templates map[string]*template.Template) *frontSvc.Service {
+func ProvideSetService(userRepo interfaces.UserRepository, authRepo interfaces.AuthRepository, bookRepo interfaces.BookRepository, orderRepo interfaces.OrderRepository, templates map[string]*template.Template) *frontSvc.Service {
 	svcOnce.Do(func() {
 		svc = &frontSvc.Service{
 			UserRepo:  userRepo,
 			AuthRepo:  authRepo,
 			BookRepo:  bookRepo,
+			OrderRepo: orderRepo,
 			Templates: templates,
 		}
 	})

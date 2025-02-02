@@ -4,7 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <title>{{ .Title }}</title>
+    <style>
+        #cartDropdownMenu {
+            width: 400px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .cart-item {
+            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
 
@@ -15,16 +31,33 @@
 <div id="success-message" class="alert alert-success">{{.Success}}</div>
 {{end}}
 
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">ChampStore</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+                <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin">Admin Page</a></li>
+
+                <li class="nav-item dropdown" id="cartDropdown">
+                    <button class="nav-link btn btn-link dropdown-toggle" id="cartDropdownButton">
+                        <i class="bi bi-cart"></i> Cart
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-2" id="cartDropdownMenu" data-bs-popper="static" style="right: 0;">
+                        <li class="text-center text-muted">Your cart is empty.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
 <div class="container mt-5">
     <h1 class="text-center">Welcome to the Bookstore!</h1>
-
-    <nav class="nav justify-content-center mb-4">
-        <a class="nav-link" href="/register">Register</a>
-        <a class="nav-link" href="/login">Login</a>
-        <a class="nav-link" href="/books">View Books</a>
-        <a class="nav-link" href="/cart">Cart</a>
-        <a class="nav-link" href="/admin">Admin Page</a>
-    </nav>
 
     <form method="GET" action="/" class="mb-3 d-flex">
         <input type="text" name="search" placeholder="Search for books..." class="form-control me-2" value="{{ .SearchQuery }}">
@@ -42,7 +75,6 @@
         </ul>
     </div>
 
-
     <div class="row">
         {{ range .Books }}
         <div class="col-md-4 mb-4">
@@ -54,7 +86,11 @@
                     <p class="card-text text-muted">Stock: {{ .Stock }} left</p>
                 </div>
                 <div class="card-footer text-center">
-                    <a href="/cart/add?id={{ .ID }}" class="btn btn-primary">Add to Cart</a>
+                    <form action="/cart/add" method="GET" class="d-flex justify-content-center gap-2">
+                        <input type="hidden" name="id" value="{{ .ID }}">
+                        <input type="number" name="quantity" value="1" min="1" max="{{ .Stock }}" class="form-control" style="width: 80px;">
+                        <button type="submit" class="btn btn-primary">Add to Cart</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -63,8 +99,88 @@
         {{ end }}
     </div>
 </div>
-
 <script>
+    function removeFromCart(bookId) {
+        fetch(`/cart/remove?id=${bookId}`, {
+            method: 'POST'
+        })
+            .then(response => {
+                if (response.ok) {
+                    fetchCartItems();
+                } else {
+                    throw new Error('Failed to remove item');
+                }
+            })
+            .catch(error => {
+                console.error("Error removing item:", error);
+                alert('Failed to remove item from cart');
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        let cartDropdown = document.getElementById("cartDropdown");
+        let cartDropdownMenu = document.getElementById("cartDropdownMenu");
+
+        cartDropdown.addEventListener("mouseenter", function () {
+            let dropdown = new bootstrap.Dropdown(cartDropdown.querySelector("button"));
+            dropdown.show();
+            fetchCartItems();
+        });
+
+        cartDropdown.addEventListener("mouseleave", function () {
+            let dropdown = new bootstrap.Dropdown(cartDropdown.querySelector("button"));
+            dropdown.hide();
+        });
+
+        function fetchCartItems() {
+            fetch("/cart/items")
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received data:', data);
+                    cartDropdownMenu.innerHTML = "";
+
+                    if (data.length === 0 || !data) {
+                        cartDropdownMenu.innerHTML = "<li class='text-center text-muted'>Your cart is empty.</li>";
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        let listItem = document.createElement("li");
+                        listItem.classList.add("cart-item");
+                        listItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">${item.Title || item.title || 'Unnamed Book'}</span>
+                        <button onclick="removeFromCart('${item.book_id}')" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted">
+                        <span>Quantity: ${item.quantity}</span>
+                        <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                `;
+                        cartDropdownMenu.appendChild(listItem);
+                    });
+
+                    let totalPrice = data.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    let totalItem = document.createElement("li");
+                    totalItem.classList.add("mt-3", "pt-2", "border-top");
+                    totalItem.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <strong>Total:</strong>
+                    <strong>$${totalPrice.toFixed(2)}</strong>
+                </div>
+            `;
+                    cartDropdownMenu.appendChild(totalItem);
+                })
+                .catch(error => {
+                    console.error("Error fetching cart items:", error);
+                    cartDropdownMenu.innerHTML = "<li class='text-center text-danger'>Failed to load cart.</li>";
+                });
+        }
+
+        window.fetchCartItems = fetchCartItems;
+    });
     setTimeout(function() {
         let errorMessage = document.getElementById("error-message");
         let successMessage = document.getElementById("success-message");
@@ -77,6 +193,7 @@
         }
     }, 3000);
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>

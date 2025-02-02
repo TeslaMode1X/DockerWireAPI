@@ -2,12 +2,17 @@ package front
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	model "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
 	middle "github.com/TeslaMode1X/DockerWireAPI/internal/middleware"
+	"github.com/TeslaMode1X/DockerWireAPI/internal/utils/response"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/gofrs/uuid"
+	"github.com/pkg/errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -27,6 +32,13 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 
 		r.Post("/register/front", h.RegistrationFront)
 		r.Post("/login/front", h.LoginFront)
+
+		r.Route("/cart", func(r chi.Router) {
+			r.Use(middle.WithAuth)
+			r.Get("/add", h.AddCartItems)
+			r.Get("/items", h.GetCartItems)
+			r.Post("/remove", h.RemoveCartItem)
+		})
 
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(middle.WithAuth)
@@ -251,4 +263,126 @@ func (h *Handler) DeleteBookFront(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin?success=book_deleted", http.StatusSeeOther)
+}
+
+func (h *Handler) GetCartItems(w http.ResponseWriter, r *http.Request) {
+	const op = "handler.front.GetCartItems"
+
+	h.Log = h.Log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		h.Log.Error("user ID not found in context")
+		response.WriteError(w, r, http.StatusUnauthorized, errors.New("user not logged in"))
+		return
+	}
+
+	cartItems, err := h.Svc.GetCartItems(r.Context(), userID)
+	if err != nil {
+		h.Log.Error("failed to fetch cart items", "error", err)
+		http.Error(w, "Failed to load cart", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(cartItems)
+}
+
+func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
+	const op = "handler.front.AddCartItems"
+
+	h.Log = h.Log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		h.Log.Error("user ID not found in context")
+		response.WriteError(w, r, http.StatusUnauthorized, errors.New("user not logged in"))
+		return
+	}
+
+	bookIDStr := r.URL.Query().Get("id")
+	if bookIDStr == "" {
+		h.Log.Error("book ID not provided")
+		response.WriteError(w, r, http.StatusBadRequest, errors.New("book ID is required"))
+		return
+	}
+
+	bookID, err := uuid.FromString(bookIDStr)
+	if err != nil {
+		h.Log.Error("invalid book ID format", err)
+		response.WriteError(w, r, http.StatusBadRequest, errors.New("invalid book ID format"))
+		return
+	}
+
+	quantityStr := r.URL.Query().Get("quantity")
+	quantity := 1
+
+	if quantityStr != "" {
+		q, err := strconv.Atoi(quantityStr)
+		if err == nil && q > 0 {
+			quantity = q
+		}
+	}
+
+	items := []orderItem.OrderItem{
+		{
+			BookID:   bookID,
+			Quantity: quantity,
+		},
+	}
+
+	err = h.Svc.AddCartItems(r.Context(), userID, &items)
+	if err != nil {
+		h.Log.Error("failed to add cart items", "error", err)
+		response.WriteError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	http.Redirect(w, r, "/?success=added_to_cart", http.StatusSeeOther)
+}
+
+func (h *Handler) RemoveCartItem(w http.ResponseWriter, r *http.Request) {
+	const op = "handler.front.RemoveCartItem"
+
+	h.Log = h.Log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		h.Log.Error("user ID not found in context")
+		response.WriteError(w, r, http.StatusUnauthorized, errors.New("user not logged in"))
+		return
+	}
+
+	bookIDStr := r.URL.Query().Get("id")
+	if bookIDStr == "" {
+		h.Log.Error("book ID not provided")
+		response.WriteError(w, r, http.StatusBadRequest, errors.New("book ID is required"))
+		return
+	}
+
+	bookID, err := uuid.FromString(bookIDStr)
+	if err != nil {
+		h.Log.Error("invalid book ID format", err)
+		response.WriteError(w, r, http.StatusBadRequest, errors.New("invalid book ID format"))
+		return
+	}
+
+	err = h.Svc.RemoveCartItem(r.Context(), userID, bookID)
+	if err != nil {
+		h.Log.Error("failed to remove cart item", "error", err)
+		response.WriteError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	http.Redirect(w, r, "/?success=removed_from_cart", http.StatusSeeOther)
 }
