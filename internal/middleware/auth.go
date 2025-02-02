@@ -50,15 +50,15 @@ func permissionDenied(w http.ResponseWriter, r *http.Request, error string) {
 	return
 }
 
-func getRoleFromToken(token *jwt.Token) (string, error) {
+func getRoleFromToken(token *jwt.Token) (float64, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", errors.New("invalid token claims")
+		return 0, errors.New("invalid token claims")
 	}
 
-	role, ok := claims["role"].(string)
+	role, ok := claims["role"].(float64)
 	if !ok {
-		return "", errors.New("invalid user role in token")
+		return 0, errors.New("invalid user role in token")
 	}
 
 	return role, nil
