@@ -349,3 +349,33 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
 
 	return nil
 }
+func (r *Repository) AlterUserOrderByID(ctx context.Context, userID, orderID uuid.UUID) error {
+	const op = "repository.order.AlterUserOrderByID"
+
+	stmt, err := r.DB.PrepareContext(ctx, `
+		UPDATE orders
+		SET status = 'paid'
+		WHERE user_id = $1
+		  AND id = $2
+		  AND status = 'draft'
+	`)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+	defer stmt.Close()
+
+	res, err := stmt.ExecContext(ctx, userID, orderID)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+	if rowsAffected == 0 {
+		return errors.Wrap(errors.New("no draft order found for this user and order ID"), op)
+	}
+
+	return nil
+}

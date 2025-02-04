@@ -18,6 +18,7 @@ type (
 		AddOrderItemIntoOrder(ctx context.Context, userID string, items *[]orderModels.OrderItem) error
 		GetOrderItemsFromOrderID(ctx context.Context, orderID string) (*[]orderModels.OrderItemFull, error)
 		RemoveCartItem(ctx context.Context, userID string, bookID uuid.UUID) error
+		AlterUserOrderByID(ctx context.Context, userID, orderID uuid.UUID) error
 	}
 
 	OrderService interface {
@@ -26,6 +27,7 @@ type (
 		CreateUserOrder(ctx context.Context, userID string) error
 		AlterUserOrder(ctx context.Context, userID string) error
 		AddOrderItemIntoOrder(ctx context.Context, userID string, bookIDs *[]orderModels.OrderItem) error
+		AlterUserOrderByID(ctx context.Context, userID, orderID string) error
 	}
 
 	OrderHandler interface {
