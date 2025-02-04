@@ -104,12 +104,12 @@ func (h *Handler) CreateUserOrder(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) AlterUserOrder(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.order.AlterUserOrder"
-
 	h.Log = h.Log.With(
 		slog.String("op", op),
 		slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
 
+	// 1) Достаём userID из контекста
 	userID, ok := r.Context().Value("user_id").(string)
 	if !ok {
 		h.Log.Error("user ID not found in context")
@@ -117,12 +117,24 @@ func (h *Handler) AlterUserOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.Svc.AlterUserOrder(context.Background(), userID)
-	if err != nil {
-		h.Log.Error("failed to alter order", "error", err)
+	// 2) Достаём orderId из chi URL
+	orderID := chi.URLParam(r, "orderId")
+	if orderID == "" {
+		h.Log.Error("order ID not found in URL param")
+		response.WriteError(w, r, http.StatusBadRequest, errors.New("missing orderId"))
+		return
 	}
 
-	response.WriteJson(w, r, http.StatusCreated, "User Order Altered")
+	// 3) Вызываем сервисный метод AlterUserOrderByID
+	err := h.Svc.AlterUserOrderByID(r.Context(), userID, orderID)
+	if err != nil {
+		h.Log.Error("failed to alter order", "error", err)
+		response.WriteError(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// 4) Если всё в порядке, отправляем положительный ответ
+	response.WriteJson(w, r, http.StatusOK, "Order paid successfully")
 }
 
 func (h *Handler) AddOrderItemIntoOrder(w http.ResponseWriter, r *http.Request) {
