@@ -10,12 +10,7 @@ import (
 	"net/url"
 )
 
-type (
-	FrontRepository interface {
-		MainPage(ctx context.Context)
-	}
-)
-
+//go:generate mockery --name FrontService
 type (
 	FrontService interface {
 		MainPage(ctx context.Context, model mainPageParams.Model) (string, error)
@@ -32,6 +27,7 @@ type (
 	}
 )
 
+//go:generate mockery --name FrontHandler
 type (
 	FrontHandler interface {
 		MainPage(w http.ResponseWriter, r *http.Request)

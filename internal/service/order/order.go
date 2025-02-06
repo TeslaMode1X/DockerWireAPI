@@ -5,6 +5,7 @@ import (
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	orderModel "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/order"
 	orderModels "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
+	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -77,6 +78,29 @@ func (s *Service) AddOrderItemIntoOrder(ctx context.Context, userID string, item
 	const op = "service.order.AddOrderItemIntoOrder"
 
 	err := s.OrderRepo.AddOrderItemIntoOrder(ctx, userID, items)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	return nil
+}
+
+func (s *Service) AlterUserOrderByID(ctx context.Context, userID, orderID string) error {
+	const op = "service.order.AlterUserOrderByID"
+
+	// Парсим userID и orderID в uuid.UUID
+	uID, err := uuid.FromString(userID)
+	if err != nil {
+		return errors.Wrap(err, op+": invalid userID format")
+	}
+
+	oID, err := uuid.FromString(orderID)
+	if err != nil {
+		return errors.Wrap(err, op+": invalid orderID format")
+	}
+
+	// Вызываем метод репозитория, который действительно меняет статус на paid
+	err = s.OrderRepo.AlterUserOrderByID(ctx, uID, oID)
 	if err != nil {
 		return errors.Wrap(err, op)
 	}

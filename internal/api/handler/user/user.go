@@ -35,7 +35,7 @@ func (h *Handler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	var id = chi.URLParam(r, "id")
 	_, err := uuid.FromString(id)
 	if err != nil {
-		h.Log.Error("failed to parse UUID", err)
+		h.Log.Error("failed to parse UUID", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}

@@ -237,7 +237,7 @@ func (h *Handler) EditBookFront(w http.ResponseWriter, r *http.Request) {
 
 	err := h.Svc.EditBook(r.Context(), bookID, &book)
 	if err != nil {
-		h.Log.Error("failed to edit book", err)
+		h.Log.Error("failed to edit book", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin?error=update_failed", http.StatusSeeOther)
 		return
 	}
@@ -257,7 +257,7 @@ func (h *Handler) DeleteBookFront(w http.ResponseWriter, r *http.Request) {
 
 	err := h.Svc.DeleteBook(r.Context(), bookID)
 	if err != nil {
-		h.Log.Error("failed to delete book", err)
+		h.Log.Error("failed to delete book", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin?error=delete_failed", http.StatusSeeOther)
 		return
 	}
@@ -316,7 +316,7 @@ func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 
 	bookID, err := uuid.FromString(bookIDStr)
 	if err != nil {
-		h.Log.Error("invalid book ID format", err)
+		h.Log.Error("invalid book ID format", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, errors.New("invalid book ID format"))
 		return
 	}
@@ -372,7 +372,7 @@ func (h *Handler) RemoveCartItem(w http.ResponseWriter, r *http.Request) {
 
 	bookID, err := uuid.FromString(bookIDStr)
 	if err != nil {
-		h.Log.Error("invalid book ID format", err)
+		h.Log.Error("invalid book ID format", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, errors.New("invalid book ID format"))
 		return
 	}
