@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	orderModel "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/order"
 	orderModels "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
 	"github.com/gofrs/uuid"
@@ -16,7 +17,7 @@ type Repository struct {
 func (r *Repository) GetUsersOrder(ctx context.Context, userId string) (*orderModel.Model, error) {
 	const op = "repository.order.GetUsersOrder"
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, user_id, status, total_price FROM orders WHERE user_id = $1")
+	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, user_id, status, total_price FROM orders WHERE user_id = $1 and status = 'draft'")
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -40,7 +41,7 @@ func (r *Repository) GetUsersOrder(ctx context.Context, userId string) (*orderMo
 func (r *Repository) GetUserOrderByUserID(ctx context.Context, orderId string) (*orderModel.Model, error) {
 	const op = "repository.order.GetUsersOrder"
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, user_id, status, total_price WHERE order_id = $1 FROM order")
+	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, user_id, status, total_price FROM orders WHERE user_id = $1")
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -119,6 +120,7 @@ func (r *Repository) AlterUserOrder(ctx context.Context, userID string) error {
 func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, items *[]orderModels.OrderItem) error {
 	const op = "repository.order.AddOrderItemIntoOrder"
 
+	// Start transaction
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, op+": failed to begin transaction")
@@ -129,124 +131,189 @@ func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, i
 		}
 	}()
 
-	exists, err := r.CheckOrderExists(ctx, userID)
+	// Get or create order
+	orderID, err := r.getOrCreateOrder(ctx, tx, userID)
 	if err != nil {
-		return errors.Wrap(err, op+": failed to check existing order")
+		return err
 	}
 
-	var orderID uuid.UUID
+	// Ensure order is in 'draft' status
+	orderStatus, err := r.checkOrderStatus(ctx, tx, orderID)
+	if err != nil {
+		return err
+	}
+
+	if orderStatus != "draft" {
+		return errors.Wrap(errors.New("order is not in draft status"), op)
+	}
+
+	// Prepare statements
+	stmtBookPrice, stmtCheckExisting, stmtUpdateItem, stmtInsertItem, stmtUpdateStock, stmtUpdateTotal, err := r.prepareStatements(ctx, tx)
+	if err != nil {
+		return err
+	}
+	defer stmtBookPrice.Close()
+	defer stmtCheckExisting.Close()
+	defer stmtUpdateItem.Close()
+	defer stmtInsertItem.Close()
+	defer stmtUpdateStock.Close()
+	defer stmtUpdateTotal.Close()
+
+	// Process each item
+	for _, item := range *items {
+		if err := r.processItem(ctx, tx, item, orderID, stmtBookPrice, stmtCheckExisting, stmtUpdateItem, stmtInsertItem, stmtUpdateStock, stmtUpdateTotal); err != nil {
+			return err
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, op+": failed to commit transaction")
+	}
+
+	return nil
+}
+
+func (r *Repository) getOrCreateOrder(ctx context.Context, tx *sql.Tx, userID string) (uuid.UUID, error) {
+	const op = "repository.order.getOrCreateOrder"
+
+	exists, err := r.CheckOrderExists(ctx, userID)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, op+": failed to check existing order")
+	}
+
 	if exists {
 		order, err := r.GetUsersOrder(ctx, userID)
 		if err != nil {
-			return errors.Wrap(err, op+": failed to get existing order")
+			return uuid.Nil, errors.Wrap(err, op+": failed to get existing order")
 		}
-		orderID = order.ID
-	} else {
-		err := r.CreateUserOrder(ctx, userID)
-		if err != nil {
-			return errors.Wrap(err, op+": failed to create new order")
-		}
-
-		order, err := r.GetUsersOrder(ctx, userID)
-		if err != nil {
-			return errors.Wrap(err, op+": failed to get newly created order")
-		}
-		orderID = order.ID
+		return order.ID, nil
 	}
 
+	err = r.CreateUserOrder(ctx, userID)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, op+": failed to create new order")
+	}
+
+	order, err := r.GetUsersOrder(ctx, userID)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, op+": failed to get newly created order")
+	}
+
+	return order.ID, nil
+}
+
+func (r *Repository) checkOrderStatus(ctx context.Context, tx *sql.Tx, orderID uuid.UUID) (string, error) {
+	const op = "repository.order.checkOrderStatus"
+
+	var status string
+	err := tx.QueryRowContext(ctx, "SELECT status FROM orders WHERE id = $1", orderID).Scan(&status)
+	if err != nil {
+		return "", errors.Wrap(err, op+": failed to get order status")
+	}
+	return status, nil
+}
+
+func (r *Repository) prepareStatements(ctx context.Context, tx *sql.Tx) (*sql.Stmt, *sql.Stmt, *sql.Stmt, *sql.Stmt, *sql.Stmt, *sql.Stmt, error) {
 	stmtBookPrice, err := tx.PrepareContext(ctx, "SELECT price, stock FROM books WHERE id = $1 FOR UPDATE")
 	if err != nil {
-		return errors.Wrap(err, op+": failed to prepare book price statement")
+		return nil, nil, nil, nil, nil, nil, errors.Wrap(err, ": failed to prepare book price statement")
 	}
-	defer stmtBookPrice.Close()
 
-	stmtCheckExisting, err := tx.PrepareContext(ctx, `
-        SELECT id, quantity FROM order_items 
-        WHERE order_id = $1 AND book_id = $2
-        FOR UPDATE`)
+	stmtCheckExisting, err := tx.PrepareContext(ctx, "SELECT id, quantity FROM order_items WHERE order_id = $1 AND book_id = $2 FOR UPDATE")
 	if err != nil {
-		return errors.Wrap(err, op+": failed to prepare check existing item statement")
+		return nil, nil, nil, nil, nil, nil, errors.Wrap(err, ": failed to prepare check existing item statement")
 	}
-	defer stmtCheckExisting.Close()
 
-	stmtUpdateItem, err := tx.PrepareContext(ctx, `
-        UPDATE order_items 
-        SET quantity = quantity + $1 
-        WHERE id = $2`)
+	stmtUpdateItem, err := tx.PrepareContext(ctx, "UPDATE order_items SET quantity = quantity + $1 WHERE id = $2")
 	if err != nil {
-		return errors.Wrap(err, op+": failed to prepare update item statement")
+		return nil, nil, nil, nil, nil, nil, errors.Wrap(err, ": failed to prepare update item statement")
 	}
-	defer stmtUpdateItem.Close()
 
-	stmtInsertItem, err := tx.PrepareContext(ctx, `
+	stmtInsertItem, err := tx.PrepareContext(ctx, "INSERT INTO order_items (order_id, book_id, quantity, price) VALUES ($1, $2, $3, $4)")
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, errors.Wrap(err, ": failed to prepare insert item statement")
+	}
+
+	stmtUpdateStock, err := tx.PrepareContext(ctx, "UPDATE books SET stock = stock - $1 WHERE id = $2")
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, errors.Wrap(err, ": failed to prepare update stock statement")
+	}
+
+	stmtUpdateTotal, err := tx.PrepareContext(ctx, "UPDATE orders SET total_price = total_price + $1 WHERE id = $2")
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, errors.Wrap(err, ": failed to prepare update total statement")
+	}
+
+	return stmtBookPrice, stmtCheckExisting, stmtUpdateItem, stmtInsertItem, stmtUpdateStock, stmtUpdateTotal, nil
+}
+
+func (r *Repository) processItem(ctx context.Context, tx *sql.Tx, item orderModels.OrderItem, orderID uuid.UUID, stmtBookPrice, stmtCheckExisting, stmtUpdateItem, stmtInsertItem, stmtUpdateStock, stmtUpdateTotal *sql.Stmt) error {
+	const op = "repository.order.processItem"
+
+	var bookPrice float64
+	var currentStock int
+	err := stmtBookPrice.QueryRowContext(ctx, item.BookID).Scan(&bookPrice, &currentStock)
+	if err != nil {
+		return errors.Wrap(err, op+": failed to get book price and stock")
+	}
+
+	if currentStock < item.Quantity {
+		return errors.Wrap(errors.New("insufficient stock"), op)
+	}
+
+	var existingItemID uuid.UUID
+	var existingQuantity int
+	err = stmtCheckExisting.QueryRowContext(ctx, orderID, item.BookID).Scan(&existingItemID, &existingQuantity)
+
+	if err == sql.ErrNoRows {
+		_, err = stmtInsertItem.ExecContext(ctx, orderID, item.BookID, item.Quantity, bookPrice)
+		if err != nil {
+			return errors.Wrap(err, op+": failed to add order item")
+		}
+	} else if err == nil {
+		_, err = stmtUpdateItem.ExecContext(ctx, item.Quantity, existingItemID)
+		if err != nil {
+			return errors.Wrap(err, op+": failed to update order item quantity")
+		}
+	} else {
+		return errors.Wrap(err, op+": failed to check existing item")
+	}
+
+	_, err = stmtUpdateStock.ExecContext(ctx, item.Quantity, item.BookID)
+	if err != nil {
+		return errors.Wrap(err, op+": failed to update book stock")
+	}
+
+	_, err = stmtUpdateTotal.ExecContext(ctx, bookPrice*float64(item.Quantity), orderID)
+	if err != nil {
+		return errors.Wrap(err, op+": failed to update order total price")
+	}
+
+	return nil
+}
+
+func (r *Repository) CreateUserOrderWithStatus(ctx context.Context, tx *sql.Tx, userID, status string) error {
+	const op = "repository.order.CreateUserOrderWithStatus"
+
+	_, err := tx.ExecContext(ctx, `
+        INSERT INTO orders (user_id, status, total_price) 
+        VALUES ($1, $2, 0)`, userID, status)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	return nil
+}
+
+func (r *Repository) InsertOrderItem(ctx context.Context, tx *sql.Tx, orderID, bookID uuid.UUID, quantity int, price float64) error {
+	const op = "repository.order.InsertOrderItem"
+
+	_, err := tx.ExecContext(ctx, `
         INSERT INTO order_items (order_id, book_id, quantity, price) 
-        VALUES ($1, $2, $3, $4)`)
+        VALUES ($1, $2, $3, $4)`, orderID, bookID, quantity, price)
 	if err != nil {
-		return errors.Wrap(err, op+": failed to prepare insert item statement")
-	}
-	defer stmtInsertItem.Close()
-
-	stmtUpdateStock, err := tx.PrepareContext(ctx, `
-        UPDATE books 
-        SET stock = stock - $1 
-        WHERE id = $2`)
-	if err != nil {
-		return errors.Wrap(err, op+": failed to prepare update stock statement")
-	}
-	defer stmtUpdateStock.Close()
-
-	stmtUpdateTotal, err := tx.PrepareContext(ctx, `
-        UPDATE orders 
-        SET total_price = total_price + $1 
-        WHERE id = $2`)
-	if err != nil {
-		return errors.Wrap(err, op+": failed to prepare update total statement")
-	}
-	defer stmtUpdateTotal.Close()
-
-	for _, item := range *items {
-		var bookPrice float64
-		var currentStock int
-		err = stmtBookPrice.QueryRowContext(ctx, item.BookID).Scan(&bookPrice, &currentStock)
-		if err != nil {
-			return errors.Wrap(err, op+": failed to get book price and stock")
-		}
-
-		if currentStock < item.Quantity {
-			return errors.Wrap(errors.New("insufficient stock"), op)
-		}
-
-		var existingItemID uuid.UUID
-		var existingQuantity int
-		err = stmtCheckExisting.QueryRowContext(ctx, orderID, item.BookID).Scan(&existingItemID, &existingQuantity)
-
-		if err == sql.ErrNoRows {
-			_, err = stmtInsertItem.ExecContext(ctx, orderID, item.BookID, item.Quantity, bookPrice)
-			if err != nil {
-				return errors.Wrap(err, op+": failed to add order item")
-			}
-		} else if err == nil {
-			_, err = stmtUpdateItem.ExecContext(ctx, item.Quantity, existingItemID)
-			if err != nil {
-				return errors.Wrap(err, op+": failed to update order item quantity")
-			}
-		} else {
-			return errors.Wrap(err, op+": failed to check existing item")
-		}
-
-		_, err = stmtUpdateStock.ExecContext(ctx, item.Quantity, item.BookID)
-		if err != nil {
-			return errors.Wrap(err, op+": failed to update book stock")
-		}
-
-		_, err = stmtUpdateTotal.ExecContext(ctx, bookPrice*float64(item.Quantity), orderID)
-		if err != nil {
-			return errors.Wrap(err, op+": failed to update order total price")
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
-		return errors.Wrap(err, op+": failed to commit transaction")
+		return errors.Wrap(err, op)
 	}
 
 	return nil
@@ -255,13 +322,35 @@ func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, i
 func (r *Repository) GetOrderItemsFromOrderID(ctx context.Context, orderID string) (*[]orderModels.OrderItemFull, error) {
 	const op = "repository.order.GetOrderItemsFromOrderID"
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT id, book_id, quantity, price FROM order_items WHERE order_id = $1")
+	orderUUID, err := uuid.FromString(orderID)
+	if err != nil {
+		return nil, errors.Wrap(err, op+": invalid order ID format")
+	}
+
+	fmt.Printf("Getting items for order ID: %s\n", orderUUID)
+
+	stmt, err := r.DB.PrepareContext(ctx, `
+        SELECT 
+            oi.id AS order_item_id, 
+            oi.book_id, 
+            b.title AS book_title, 
+            oi.quantity, 
+            oi.price 
+        FROM 
+            order_items oi 
+        JOIN 
+            books b ON oi.book_id = b.id 
+        JOIN 
+            orders o ON oi.order_id = o.id 
+        WHERE 
+            oi.order_id = $1 
+            AND o.status = 'draft'`)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
 	defer stmt.Close()
 
-	rows, err := stmt.QueryContext(ctx, orderID)
+	rows, err := stmt.QueryContext(ctx, orderUUID)
 	if err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -270,19 +359,20 @@ func (r *Repository) GetOrderItemsFromOrderID(ctx context.Context, orderID strin
 	var orderItems []orderModels.OrderItemFull
 	for rows.Next() {
 		var orderItem orderModels.OrderItemFull
-
 		err := rows.Scan(
 			&orderItem.ID,
 			&orderItem.BookID,
+			&orderItem.Name,
 			&orderItem.Quantity,
 			&orderItem.Price,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, op)
 		}
-
 		orderItems = append(orderItems, orderItem)
 	}
+
+	fmt.Println(orderItems)
 
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, op)
@@ -293,7 +383,6 @@ func (r *Repository) GetOrderItemsFromOrderID(ctx context.Context, orderID strin
 
 func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID uuid.UUID) error {
 	const op = "repository.order.RemoveCartItem"
-
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, op+": failed to begin transaction")
@@ -303,6 +392,8 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
 			tx.Rollback()
 		}
 	}()
+
+	fmt.Println(userID, bookID)
 
 	var orderID uuid.UUID
 	var quantity int
@@ -314,7 +405,21 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
         WHERE o.user_id = $1 AND oi.book_id = $2 AND o.status = 'draft'
     `, userID, bookID).Scan(&orderID, &quantity, &price)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.Wrap(err, op+": no matching order or item found")
+		}
 		return errors.Wrap(err, op+": failed to get order details")
+	}
+
+	fmt.Println(orderID)
+
+	var bookExists bool
+	err = tx.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM books WHERE id = $1)", bookID).Scan(&bookExists)
+	if err != nil {
+		return errors.Wrap(err, op+": failed to check book existence")
+	}
+	if !bookExists {
+		return errors.New("book not found")
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -326,12 +431,20 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
 		return errors.Wrap(err, op+": failed to update book stock")
 	}
 
-	_, err = tx.ExecContext(ctx, `
+	res, err := tx.ExecContext(ctx, `
         DELETE FROM order_items 
         WHERE order_id = $1 AND book_id = $2
     `, orderID, bookID)
 	if err != nil {
 		return errors.Wrap(err, op+": failed to remove order item")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, op+": failed to check rows affected")
+	}
+	if rowsAffected == 0 {
+		return errors.New("no rows affected during deletion")
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -349,6 +462,7 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
 
 	return nil
 }
+
 func (r *Repository) AlterUserOrderByID(ctx context.Context, userID, orderID uuid.UUID) error {
 	const op = "repository.order.AlterUserOrderByID"
 
@@ -375,6 +489,23 @@ func (r *Repository) AlterUserOrderByID(ctx context.Context, userID, orderID uui
 	}
 	if rowsAffected == 0 {
 		return errors.Wrap(errors.New("no draft order found for this user and order ID"), op)
+	}
+
+	return nil
+}
+
+func (r *Repository) ChangeStatusOfCart(ctx context.Context, userId, orderId string) error {
+	const op = "repository.order.ChangeStatusOfCart"
+
+	stmt, err := r.DB.PrepareContext(ctx, "UPDATE orders SET status = 'paid' WHERE user_id = $1 AND id = $2")
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, userId, orderId)
+	if err != nil {
+		return errors.Wrap(err, op)
 	}
 
 	return nil

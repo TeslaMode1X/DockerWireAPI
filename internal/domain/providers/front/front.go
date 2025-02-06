@@ -27,11 +27,12 @@ var ProviderSet = wire.NewSet(
 	wire.Bind(new(interfaces.FrontService), new(*frontSvc.Service)),
 )
 
-func ProvideSetHandler(svc interfaces.FrontService, log *slog.Logger) *frontHdl.Handler {
+func ProvideSetHandler(svc interfaces.FrontService, svcUser interfaces.UserService, log *slog.Logger) *frontHdl.Handler {
 	hdlOnce.Do(func() {
 		hdl = &frontHdl.Handler{
-			Svc: svc,
-			Log: log,
+			Svc:     svc,
+			SvcUser: svcUser,
+			Log:     log,
 		}
 	})
 

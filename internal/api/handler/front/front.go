@@ -3,6 +3,7 @@ package front
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	model "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
@@ -19,12 +20,14 @@ import (
 )
 
 type Handler struct {
-	Svc interfaces.FrontService
-	Log *slog.Logger
+	Svc     interfaces.FrontService
+	SvcUser interfaces.UserService
+	Log     *slog.Logger
 }
 
 func (h *Handler) NewFrontEndHandler(r chi.Router) {
 	r.Route("/", func(r chi.Router) {
+		r.Use(middle.WithOptionalAuth)
 		r.Get("/", h.MainPage)
 
 		r.Get("/login", h.LoginPage)
@@ -38,6 +41,7 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 			r.Get("/add", h.AddCartItems)
 			r.Get("/items", h.GetCartItems)
 			r.Post("/remove", h.RemoveCartItem)
+			r.Get("/success", h.CartCheckout)
 		})
 
 		r.Route("/admin", func(r chi.Router) {
@@ -53,11 +57,21 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 
 func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.MainPage"
-
 	h.Log = h.Log.With(
 		slog.String("op", op),
 		slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	var userName string
+	if ok {
+		user, err := h.SvcUser.GetUserByID(r.Context(), userID)
+		if err != nil {
+			h.Log.Error("failed to get user by ID", slog.String("error", err.Error()))
+		} else {
+			userName = user.Username
+		}
+	}
 
 	params := mainPageParams.Model{
 		Page:           "main",
@@ -65,6 +79,7 @@ func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 		SuccessMessage: r.URL.Query().Get("success"),
 		SearchQuery:    r.URL.Query().Get("search"),
 		SortBy:         r.URL.Query().Get("sort"),
+		UserName:       userName,
 	}
 
 	mainPageHTML, err := h.Svc.MainPage(r.Context(), params)
@@ -265,6 +280,17 @@ func (h *Handler) DeleteBookFront(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin?success=book_deleted", http.StatusSeeOther)
 }
 
+// GetCartItems
+//
+// @Summary Get user's cart items
+// @Description Retrieves the list of items in the current user's cart
+// @Tags cart
+// @Accept json
+// @Produce json
+// @Success 200 {array} orderItem.OrderItem "List of cart items"
+// @Failure 401 {object} response.ResponseError "User not logged in"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/cart/items [get]
 func (h *Handler) GetCartItems(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.GetCartItems"
 
@@ -292,6 +318,20 @@ func (h *Handler) GetCartItems(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(cartItems)
 }
 
+// AddCartItems
+//
+// @Summary Add item to cart
+// @Description Adds a book to the current user's cart with an optional quantity
+// @Tags cart
+// @Accept json
+// @Produce json
+// @Param id query string true "Book ID"
+// @Param quantity query integer false "Quantity of the book to add (default: 1)"
+// @Success 303 {string} string "Redirects to main page with success message"
+// @Failure 400 {object} response.ResponseError "Invalid book ID or missing parameters"
+// @Failure 401 {object} response.ResponseError "User not logged in"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/cart/add [get]
 func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.AddCartItems"
 
@@ -306,6 +346,8 @@ func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 		response.WriteError(w, r, http.StatusUnauthorized, errors.New("user not logged in"))
 		return
 	}
+
+	fmt.Println(userID)
 
 	bookIDStr := r.URL.Query().Get("id")
 	if bookIDStr == "" {
@@ -348,6 +390,19 @@ func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?success=added_to_cart", http.StatusSeeOther)
 }
 
+// RemoveCartItem
+//
+// @Summary Remove item from cart
+// @Description Removes a book from the current user's cart by its ID
+// @Tags cart
+// @Accept json
+// @Produce json
+// @Param id query string true "Book ID"
+// @Success 303 {string} string "Redirects to main page with success message"
+// @Failure 400 {object} response.ResponseError "Invalid book ID or missing parameters"
+// @Failure 401 {object} response.ResponseError "User not logged in"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/cart/remove [post]
 func (h *Handler) RemoveCartItem(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.RemoveCartItem"
 
@@ -385,4 +440,28 @@ func (h *Handler) RemoveCartItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/?success=removed_from_cart", http.StatusSeeOther)
+}
+
+func (h *Handler) CartCheckout(w http.ResponseWriter, r *http.Request) {
+	const op = "handler.front.CartCheckout"
+	h.Log = h.Log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		h.Log.Error("user ID not found in context")
+		http.Redirect(w, r, "/login?error=user_not_logged_in", http.StatusSeeOther)
+		return
+	}
+
+	err := h.Svc.CartCheckout(r.Context(), userID)
+	if err != nil {
+		h.Log.Error("failed to checkout cart item", "error", err)
+		http.Redirect(w, r, "/cart?error=checkout_failed", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/?success=cart_paid_successfully", http.StatusSeeOther)
 }

@@ -29,6 +29,18 @@ func (h *Handler) NewAuthHandler(r chi.Router) {
 	r.Post("/login", h.Login)
 }
 
+// Register
+//
+// @Summary Register a new user
+// @Description Creates a new user account and returns the created user ID
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   request  body     model.Registration  true  "Registration data"
+// @Success 201 {object} UUID
+// @Failure 400 {object} response.ResponseError "Invalid input or user already exists"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/register [post]
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.auth.Registration"
 	h.Log = h.Log.With(
@@ -65,6 +77,20 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	response.WriteJson(w, r, http.StatusCreated, userCreated)
 }
 
+// Login
+//
+// @Summary User login
+// @Description Authenticates a user and returns a JWT token in a cookie
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   request  body     model.Login  true  "User credentials"
+// @Success 200 {string} string "User ID"
+// @Failure 400 {object} response.ResponseError "Invalid request body or validation error"
+// @Failure 401 {object} response.ResponseError "Already logged in"
+// @Failure 404 {object} response.ResponseError "User not found"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.auth.Login"
 

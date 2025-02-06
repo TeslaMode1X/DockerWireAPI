@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	_ "github.com/TeslaMode1X/DockerWireAPI/docs"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/auth"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/api/handler/front"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/rs/cors"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"log/slog"
 	"net/http"
 	"time"
@@ -43,6 +45,8 @@ func NewServeHTTP(cfg *config.Config, authHdl *auth.Handler,
 			bookHdl.NewBookHandler(r)
 			orderHdl.NewOrderHandler(r)
 		})
+
+		r.Get("/swagger/*", httpSwagger.Handler())
 	})
 
 	handler := cors.New(cors.Options{

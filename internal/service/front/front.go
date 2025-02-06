@@ -75,6 +75,7 @@ func (s *Service) MainPage(ctx context.Context, params mainPageParams.Model) (st
 		"Error":       params.ErrorMessage,
 		"Success":     params.SuccessMessage,
 		"SearchQuery": params.SearchQuery,
+		"UserName":    params.UserName,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, op)
@@ -361,6 +362,22 @@ func (s *Service) RemoveCartItem(ctx context.Context, userID string, bookID uuid
 	err := s.OrderRepo.RemoveCartItem(ctx, userID, bookID)
 	if err != nil {
 		return errors.Wrap(err, op)
+	}
+
+	return nil
+}
+
+func (s *Service) CartCheckout(ctx context.Context, userID string) error {
+	const op = "service.front.CartCheckout"
+
+	orderModel, err := s.OrderRepo.GetUserOrderByUserID(ctx, userID)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	err = s.OrderRepo.ChangeStatusOfCart(ctx, userID, orderModel.ID.String())
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil

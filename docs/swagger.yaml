@@ -1,0 +1,568 @@
+definitions:
+  BookModel:
+    properties:
+      author:
+        type: string
+      id:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+      title:
+        type: string
+    type: object
+  CreateOrderItemRequestModel:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/OrderItemModel'
+        type: array
+    type: object
+  LoginModel:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  OrderItemModel:
+    properties:
+      book_id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  OrderModel:
+    properties:
+      id:
+        type: string
+      status:
+        type: string
+      total_price:
+        type: number
+      user_id:
+        type: string
+    type: object
+  RegistrationModel:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  ResponseErrorModel:
+    properties:
+      error:
+        type: string
+    type: object
+  UserModel:
+    properties:
+      id:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/book:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all books available in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of books
+          schema:
+            items:
+              $ref: '#/definitions/BookModel'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Get all books
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: Creates a new book and returns the created book ID
+      parameters:
+      - description: Book data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/BookModel'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created book ID
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Create a new book
+      tags:
+      - books
+  /api/v1/book/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an existing book by its unique identifier
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Book successfully deleted!
+          schema:
+            type: string
+        "400":
+          description: Invalid UUID format
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "404":
+          description: Book not found
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Delete a book by ID
+      tags:
+      - books
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single book by its unique identifier
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Book details
+          schema:
+            $ref: '#/definitions/BookModel'
+        "400":
+          description: Invalid UUID format
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "404":
+          description: Book not found
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Get book by ID
+      tags:
+      - books
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing book by its unique identifier
+      parameters:
+      - description: Book ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated book data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/BookModel'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated book ID
+          schema:
+            type: string
+        "400":
+          description: Invalid UUID format or input
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "404":
+          description: Book not found
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Update a book by ID
+      tags:
+      - books
+  /api/v1/cart/add:
+    get:
+      consumes:
+      - application/json
+      description: Adds a book to the current user's cart with an optional quantity
+      parameters:
+      - description: Book ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: 'Quantity of the book to add (default: 1)'
+        in: query
+        name: quantity
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "303":
+          description: Redirects to main page with success message
+          schema:
+            type: string
+        "400":
+          description: Invalid book ID or missing parameters
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Add item to cart
+      tags:
+      - cart
+  /api/v1/cart/items:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the list of items in the current user's cart
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of cart items
+          schema:
+            items:
+              $ref: '#/definitions/OrderItemModel'
+            type: array
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Get user's cart items
+      tags:
+      - cart
+  /api/v1/cart/remove:
+    post:
+      consumes:
+      - application/json
+      description: Removes a book from the current user's cart by its ID
+      parameters:
+      - description: Book ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "303":
+          description: Redirects to main page with success message
+          schema:
+            type: string
+        "400":
+          description: Invalid book ID or missing parameters
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Remove item from cart
+      tags:
+      - cart
+  /api/v1/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT token in a cookie
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/LoginModel'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User ID
+          schema:
+            type: string
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "401":
+          description: Already logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: User login
+      tags:
+      - auth
+  /api/v1/order:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the current user's order based on the user ID in the
+        context
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User's order details
+          schema:
+            $ref: '#/definitions/OrderModel'
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Get user's order
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Creates a new order for the current user based on the user ID in
+        the context
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User Order created
+          schema:
+            type: string
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Create a new user order
+      tags:
+      - orders
+  /api/v1/order/{orderId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific order by its unique identifier
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order details
+          schema:
+            $ref: '#/definitions/OrderModel'
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Get order by order ID
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing order by its ID and the user ID in the context
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order paid successfully
+          schema:
+            type: string
+        "400":
+          description: Missing or invalid order ID
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Update user's order
+      tags:
+      - orders
+  /api/v1/order/order:
+    post:
+      consumes:
+      - application/json
+      description: Adds one or more items to the current user's order
+      parameters:
+      - description: Order items to add
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/CreateOrderItemRequestModel'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Order Items Added
+          schema:
+            type: string
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "401":
+          description: User not logged in
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Add items to user's order
+      tags:
+      - orders
+  /api/v1/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and returns the created user ID
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/RegistrationModel'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Invalid input or user already exists
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Register a new user
+      tags:
+      - auth
+  /api/v1/user/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a user's details by their unique identifier
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User details
+          schema:
+            $ref: '#/definitions/UserModel'
+        "400":
+          description: Invalid UUID format
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseErrorModel'
+      summary: Get user by ID
+      tags:
+      - users
+swagger: "2.0"
