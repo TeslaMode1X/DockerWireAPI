@@ -366,3 +366,19 @@ func (s *Service) RemoveCartItem(ctx context.Context, userID string, bookID uuid
 
 	return nil
 }
+
+func (s *Service) CartCheckout(ctx context.Context, userID string) error {
+	const op = "service.front.CartCheckout"
+
+	orderModel, err := s.OrderRepo.GetUserOrderByUserID(ctx, userID)
+	if err != nil {
+		return errors.Wrap(err, op)
+	}
+
+	err = s.OrderRepo.ChangeStatusOfCart(ctx, userID, orderModel.ID.String())
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

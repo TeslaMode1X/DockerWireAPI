@@ -41,6 +41,7 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 			r.Get("/add", h.AddCartItems)
 			r.Get("/items", h.GetCartItems)
 			r.Post("/remove", h.RemoveCartItem)
+			r.Get("/success", h.CartCheckout)
 		})
 
 		r.Route("/admin", func(r chi.Router) {
@@ -439,4 +440,28 @@ func (h *Handler) RemoveCartItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/?success=removed_from_cart", http.StatusSeeOther)
+}
+
+func (h *Handler) CartCheckout(w http.ResponseWriter, r *http.Request) {
+	const op = "handler.front.CartCheckout"
+	h.Log = h.Log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		h.Log.Error("user ID not found in context")
+		http.Redirect(w, r, "/login?error=user_not_logged_in", http.StatusSeeOther)
+		return
+	}
+
+	err := h.Svc.CartCheckout(r.Context(), userID)
+	if err != nil {
+		h.Log.Error("failed to checkout cart item", "error", err)
+		http.Redirect(w, r, "/cart?error=checkout_failed", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/?success=cart_paid_successfully", http.StatusSeeOther)
 }

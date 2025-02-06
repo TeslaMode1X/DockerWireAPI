@@ -13,6 +13,7 @@ type (
 	OrderRepository interface {
 		GetUsersOrder(ctx context.Context, userId string) (*orderModel.Model, error)
 		GetUserOrderByUserID(ctx context.Context, orderId string) (*orderModel.Model, error)
+		ChangeStatusOfCart(ctx context.Context, userId, orderId string) error
 		CreateUserOrder(ctx context.Context, userID string) error
 		CheckOrderExists(ctx context.Context, userID string) (bool, error)
 		AlterUserOrder(ctx context.Context, userID string) error
