@@ -3,6 +3,7 @@ package front
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
 	model "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/books"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/mainPageParams"
@@ -19,12 +20,14 @@ import (
 )
 
 type Handler struct {
-	Svc interfaces.FrontService
-	Log *slog.Logger
+	Svc     interfaces.FrontService
+	SvcUser interfaces.UserService
+	Log     *slog.Logger
 }
 
 func (h *Handler) NewFrontEndHandler(r chi.Router) {
 	r.Route("/", func(r chi.Router) {
+		r.Use(middle.WithOptionalAuth)
 		r.Get("/", h.MainPage)
 
 		r.Get("/login", h.LoginPage)
@@ -53,11 +56,21 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 
 func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.MainPage"
-
 	h.Log = h.Log.With(
 		slog.String("op", op),
 		slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	var userName string
+	if ok {
+		user, err := h.SvcUser.GetUserByID(r.Context(), userID)
+		if err != nil {
+			h.Log.Error("failed to get user by ID", slog.String("error", err.Error()))
+		} else {
+			userName = user.Username
+		}
+	}
 
 	params := mainPageParams.Model{
 		Page:           "main",
@@ -65,6 +78,7 @@ func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 		SuccessMessage: r.URL.Query().Get("success"),
 		SearchQuery:    r.URL.Query().Get("search"),
 		SortBy:         r.URL.Query().Get("sort"),
+		UserName:       userName,
 	}
 
 	mainPageHTML, err := h.Svc.MainPage(r.Context(), params)
@@ -306,6 +320,8 @@ func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 		response.WriteError(w, r, http.StatusUnauthorized, errors.New("user not logged in"))
 		return
 	}
+
+	fmt.Println(userID)
 
 	bookIDStr := r.URL.Query().Get("id")
 	if bookIDStr == "" {

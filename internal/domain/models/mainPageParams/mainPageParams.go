@@ -6,4 +6,5 @@ type Model struct {
 	SuccessMessage string
 	SearchQuery    string
 	SortBy         string
+	UserName       string
 }

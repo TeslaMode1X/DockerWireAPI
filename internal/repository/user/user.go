@@ -35,7 +35,7 @@ func (r *Repository) CheckUserExists(ctx context.Context, username string) (bool
 func (r *Repository) FindUserByID(ctx context.Context, id uuid.UUID) (userModel.User, error) {
 	const op = "repo.user.FindUserByID"
 
-	stmt, err := r.DB.PrepareContext(ctx, "SELECT * FROM users WHERE id = $1")
+	stmt, err := r.DB.PrepareContext(ctx, "SELECT username, password, role, created_at FROM users WHERE id = $1")
 	if err != nil {
 		return userModel.User{}, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
 	}
@@ -43,7 +43,6 @@ func (r *Repository) FindUserByID(ctx context.Context, id uuid.UUID) (userModel.
 
 	var user userModel.User
 	err = stmt.QueryRowContext(ctx, id).Scan(
-		&user.ID,
 		&user.Username,
 		&user.Password,
 		&user.Role,

@@ -37,7 +37,7 @@ func InitializeAPI(cfg *config.Config, log *slog.Logger) (*api.ServerHTTP, error
 	orderRepository := order.ProvideUserRepository(sqlDB)
 	v := front.ProvideSetTemplates()
 	frontService := front.ProvideSetService(userRepository, repository, booksRepository, orderRepository, v)
-	frontHandler := front.ProvideSetHandler(frontService, log)
+	frontHandler := front.ProvideSetHandler(frontService, userService, log)
 	orderService := order.ProvideUserService(orderRepository)
 	orderHandler := order.ProvideUserHandler(orderService, log)
 	serverHTTP := api.NewServeHTTP(cfg, handler, userHandler, booksHandler, frontHandler, orderHandler)
