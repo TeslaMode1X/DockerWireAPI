@@ -100,15 +100,16 @@
     </div>
 </div>
 <script>
-    // 1) Удаление позиции из корзины
     function removeFromCart(bookId) {
-        fetch(`/cart/remove?id=${bookId}`, { method: 'POST' })
+        fetch(`/cart/remove?id=${bookId}`, {
+            method: 'POST'
+        })
             .then(response => {
-                if (!response.ok) {
+                if (response.ok) {
+                    fetchCartItems();
+                } else {
                     throw new Error('Failed to remove item');
                 }
-                // После удаления сразу обновляем корзину
-                fetchCartItems();
             })
             .catch(error => {
                 console.error("Error removing item:", error);
@@ -116,106 +117,61 @@
             });
     }
 
-    // 2) "Proceed to Checkout" - нажали кнопку → отправили PUT /order/<orderID>
-    function proceedToCheckout(orderId) {
-        fetch(`/order/${orderId}`, { method: 'PUT' })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Failed to proceed to checkout");
-                }
-                return response.text();
-            })
-            .then(data => {
-                alert("Order paid successfully!");
-                // После оплаты корзина должна стать пустой (или другой статус)
-                // Обновляем список
-                fetchCartItems();
-            })
-            .catch(error => {
-                console.error("Error proceeding to checkout:", error);
-                alert('Failed to proceed to checkout');
-            });
-    }
-
     document.addEventListener("DOMContentLoaded", function() {
         let cartDropdown = document.getElementById("cartDropdown");
         let cartDropdownMenu = document.getElementById("cartDropdownMenu");
 
-        // Показываем dropdown по hover. Вы также можете менять на click, если хотите.
         cartDropdown.addEventListener("mouseenter", function () {
             let dropdown = new bootstrap.Dropdown(cartDropdown.querySelector("button"));
             dropdown.show();
             fetchCartItems();
         });
+
         cartDropdown.addEventListener("mouseleave", function () {
             let dropdown = new bootstrap.Dropdown(cartDropdown.querySelector("button"));
             dropdown.hide();
         });
 
-        // 3) Загружаем элементы из корзины
         function fetchCartItems() {
             fetch("/cart/items")
                 .then(response => response.json())
                 .then(data => {
-                    // Предположим, data = { order_id: "...", items: [...] }
-                    console.log('Received cart data:', data);
+                    console.log('Received data:', data);
                     cartDropdownMenu.innerHTML = "";
 
-                    // Если ответ структурирован как массив, подстройтесь под него
-                    let items = data.items || [];
-
-                    if (items.length === 0) {
+                    if (data.length === 0 || !data) {
                         cartDropdownMenu.innerHTML = "<li class='text-center text-muted'>Your cart is empty.</li>";
                         return;
                     }
 
-                    // Рендерим список товаров
-                    items.forEach(item => {
+                    data.forEach(item => {
                         let listItem = document.createElement("li");
                         listItem.classList.add("cart-item");
                         listItem.innerHTML = `
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold">${item.title || 'Unnamed Book'}</span>
-                                <button onclick="removeFromCart('${item.book_id}')" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                            <div class="d-flex justify-content-between text-muted">
-                                <span>Quantity: ${item.quantity}</span>
-                                <span>$${(item.price * item.quantity).toFixed(2)}</span>
-                            </div>
-                        `;
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">${item.Title || item.title || 'Unnamed Book'}</span>
+                        <button onclick="removeFromCart('${item.book_id}')" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted">
+                        <span>Quantity: ${item.quantity}</span>
+                        <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                `;
                         cartDropdownMenu.appendChild(listItem);
                     });
 
-                    // Подсчитываем и выводим итого
-                    let totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    let totalPrice = data.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                     let totalItem = document.createElement("li");
                     totalItem.classList.add("mt-3", "pt-2", "border-top");
                     totalItem.innerHTML = `
-                        <div class="d-flex justify-content-between">
-                            <strong>Total:</strong>
-                            <strong>$${totalPrice.toFixed(2)}</strong>
-                        </div>
-                    `;
+                <div class="d-flex justify-content-between">
+                    <strong>Total:</strong>
+                    <strong>$${totalPrice.toFixed(2)}</strong>
+                </div>
+            `;
                     cartDropdownMenu.appendChild(totalItem);
-
-                    // Добавляем кнопку "Proceed to Checkout" внизу
-                    let checkoutItem = document.createElement("li");
-                    checkoutItem.classList.add("mt-2");
-                    checkoutItem.innerHTML = `
-                        <button class="btn btn-success w-100">
-                            Proceed to Checkout
-                        </button>
-                    `;
-                    // Навешиваем обработчик клика, вызывающий proceedToCheckout(...)
-                    let checkoutBtn = checkoutItem.querySelector("button");
-                    checkoutBtn.addEventListener("click", function() {
-                        // order_id взяли из data.order_id
-                        proceedToCheckout(data.order_id);
-                    });
-
-                    cartDropdownMenu.appendChild(checkoutItem);
                 })
                 .catch(error => {
                     console.error("Error fetching cart items:", error);
@@ -223,23 +179,20 @@
                 });
         }
 
-        // Делаем функцию глобальной (чтобы её вызывать снаружи, если нужно).
         window.fetchCartItems = fetchCartItems;
-
-        // 4) Прячем алерты через 3 секунды (как у вас уже сделано)
-        setTimeout(function() {
-            let errorMessage = document.getElementById("error-message");
-            let successMessage = document.getElementById("success-message");
-            if (errorMessage) {
-                errorMessage.style.display = "none";
-            }
-            if (successMessage) {
-                successMessage.style.display = "none";
-            }
-        }, 3000);
     });
-</script>
+    setTimeout(function() {
+        let errorMessage = document.getElementById("error-message");
+        let successMessage = document.getElementById("success-message");
 
+        if (errorMessage) {
+            errorMessage.style.display = "none";
+        }
+        if (successMessage) {
+            successMessage.style.display = "none";
+        }
+    }, 3000);
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 

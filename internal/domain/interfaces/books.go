@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockery --name BookRepository
 type (
 	BookRepository interface {
 		GetAllBooks(ctx context.Context) (*[]books.Book, error)
@@ -18,6 +19,7 @@ type (
 	}
 )
 
+//go:generate mockery --name BookService
 type (
 	BookService interface {
 		GetAllBooks(ctx context.Context) (*[]books.Book, error)
@@ -28,6 +30,7 @@ type (
 	}
 )
 
+//go:generate mockery --name BookHandler
 type (
 	BookHandler interface {
 		GetAllBooks(w http.ResponseWriter, r *http.Request)
