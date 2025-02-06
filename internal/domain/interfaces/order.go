@@ -11,6 +11,7 @@ import (
 //go:generate mockery --name OrderRepository
 type (
 	OrderRepository interface {
+		GetOrdersByUserID(ctx context.Context, userID string) ([]orderModels.HistoryOrderItem, error)
 		GetUsersOrder(ctx context.Context, userId string) (*orderModel.Model, error)
 		GetUserOrderByUserID(ctx context.Context, orderId string) (*orderModel.Model, error)
 		ChangeStatusOfCart(ctx context.Context, userId, orderId string) error

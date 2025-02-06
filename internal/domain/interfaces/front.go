@@ -25,6 +25,7 @@ type (
 		AddCartItems(ctx context.Context, userID string, items *[]orderModels.OrderItem) error
 		RemoveCartItem(ctx context.Context, userID string, bookID uuid.UUID) error
 		CartCheckout(ctx context.Context, userID string) error
+		HistoryPage(ctx context.Context, userID string) (string, error)
 	}
 )
 
@@ -43,5 +44,6 @@ type (
 		AddCartItems(w http.ResponseWriter, r *http.Request)
 		RemoveCartItem(w http.ResponseWriter, r *http.Request)
 		CartCheckout(w http.ResponseWriter, r *http.Request)
+		HistoryPage(w http.ResponseWriter, r *http.Request)
 	}
 )

@@ -33,6 +33,8 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 		r.Get("/login", h.LoginPage)
 		r.Get("/register", h.RegistrationPage)
 
+		r.Get("/history", h.HistoryPage)
+
 		r.Post("/register/front", h.RegistrationFront)
 		r.Post("/login/front", h.LoginFront)
 
@@ -222,6 +224,33 @@ func (h *Handler) AdminPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(adminPageHTML))
+}
+
+func (h *Handler) HistoryPage(w http.ResponseWriter, r *http.Request) {
+	const op = "handler.front.HistoryPage"
+
+	h.Log = h.Log.With(
+		slog.String("op", op),
+		slog.String("request_id", middleware.GetReqID(r.Context())),
+	)
+
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		h.Log.Error("Error getting userId from context", "error")
+		http.Error(w, "Bad Request Error", http.StatusBadRequest)
+		return
+	}
+
+	historyPage, err := h.Svc.HistoryPage(r.Context(), userID)
+	if err != nil {
+		h.Log.Error("Error in history page", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(historyPage))
 }
 
 func (h *Handler) EditBookFront(w http.ResponseWriter, r *http.Request) {

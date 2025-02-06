@@ -73,6 +73,24 @@ func (_m *OrderRepository) AlterUserOrderByID(ctx context.Context, userID uuid.U
 	return r0
 }
 
+// ChangeStatusOfCart provides a mock function with given fields: ctx, userId, orderId
+func (_m *OrderRepository) ChangeStatusOfCart(ctx context.Context, userId string, orderId string) error {
+	ret := _m.Called(ctx, userId, orderId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ChangeStatusOfCart")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, userId, orderId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CheckOrderExists provides a mock function with given fields: ctx, userID
 func (_m *OrderRepository) CheckOrderExists(ctx context.Context, userID string) (bool, error) {
 	ret := _m.Called(ctx, userID)
@@ -142,6 +160,36 @@ func (_m *OrderRepository) GetOrderItemsFromOrderID(ctx context.Context, orderID
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, orderID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetOrdersByUserID provides a mock function with given fields: ctx, userID
+func (_m *OrderRepository) GetOrdersByUserID(ctx context.Context, userID string) ([]orderItem.HistoryOrderItem, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrdersByUserID")
+	}
+
+	var r0 []orderItem.HistoryOrderItem
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]orderItem.HistoryOrderItem, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []orderItem.HistoryOrderItem); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]orderItem.HistoryOrderItem)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
 	} else {
 		r1 = ret.Error(1)
 	}

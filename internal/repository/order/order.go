@@ -3,7 +3,7 @@ package order
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"encoding/json"
 	orderModel "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/order"
 	orderModels "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/orderItem"
 	"github.com/gofrs/uuid"
@@ -120,7 +120,6 @@ func (r *Repository) AlterUserOrder(ctx context.Context, userID string) error {
 func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, items *[]orderModels.OrderItem) error {
 	const op = "repository.order.AddOrderItemIntoOrder"
 
-	// Start transaction
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, op+": failed to begin transaction")
@@ -131,13 +130,11 @@ func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, i
 		}
 	}()
 
-	// Get or create order
 	orderID, err := r.getOrCreateOrder(ctx, tx, userID)
 	if err != nil {
 		return err
 	}
 
-	// Ensure order is in 'draft' status
 	orderStatus, err := r.checkOrderStatus(ctx, tx, orderID)
 	if err != nil {
 		return err
@@ -147,7 +144,6 @@ func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, i
 		return errors.Wrap(errors.New("order is not in draft status"), op)
 	}
 
-	// Prepare statements
 	stmtBookPrice, stmtCheckExisting, stmtUpdateItem, stmtInsertItem, stmtUpdateStock, stmtUpdateTotal, err := r.prepareStatements(ctx, tx)
 	if err != nil {
 		return err
@@ -159,14 +155,12 @@ func (r *Repository) AddOrderItemIntoOrder(ctx context.Context, userID string, i
 	defer stmtUpdateStock.Close()
 	defer stmtUpdateTotal.Close()
 
-	// Process each item
 	for _, item := range *items {
 		if err := r.processItem(ctx, tx, item, orderID, stmtBookPrice, stmtCheckExisting, stmtUpdateItem, stmtInsertItem, stmtUpdateStock, stmtUpdateTotal); err != nil {
 			return err
 		}
 	}
 
-	// Commit transaction
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, op+": failed to commit transaction")
 	}
@@ -327,8 +321,6 @@ func (r *Repository) GetOrderItemsFromOrderID(ctx context.Context, orderID strin
 		return nil, errors.Wrap(err, op+": invalid order ID format")
 	}
 
-	fmt.Printf("Getting items for order ID: %s\n", orderUUID)
-
 	stmt, err := r.DB.PrepareContext(ctx, `
         SELECT 
             oi.id AS order_item_id, 
@@ -372,8 +364,6 @@ func (r *Repository) GetOrderItemsFromOrderID(ctx context.Context, orderID strin
 		orderItems = append(orderItems, orderItem)
 	}
 
-	fmt.Println(orderItems)
-
 	if err = rows.Err(); err != nil {
 		return nil, errors.Wrap(err, op)
 	}
@@ -393,8 +383,6 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
 		}
 	}()
 
-	fmt.Println(userID, bookID)
-
 	var orderID uuid.UUID
 	var quantity int
 	var price float64
@@ -410,8 +398,6 @@ func (r *Repository) RemoveCartItem(ctx context.Context, userID string, bookID u
 		}
 		return errors.Wrap(err, op+": failed to get order details")
 	}
-
-	fmt.Println(orderID)
 
 	var bookExists bool
 	err = tx.QueryRowContext(ctx, "SELECT EXISTS (SELECT 1 FROM books WHERE id = $1)", bookID).Scan(&bookExists)
@@ -509,4 +495,68 @@ func (r *Repository) ChangeStatusOfCart(ctx context.Context, userId, orderId str
 	}
 
 	return nil
+}
+
+func (r *Repository) GetOrdersByUserID(ctx context.Context, userID string) ([]orderModels.HistoryOrderItem, error) {
+	const op = "repository.order.GetOrdersByUserID"
+
+	query := `
+    WITH order_details AS (
+        SELECT 
+            o.id, 
+            o.total_price,
+            o.status,
+            o.created_at,
+            b.title as name, 
+            oi.book_id, 
+            oi.quantity, 
+            oi.price
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        JOIN books b ON oi.book_id = b.id
+        WHERE o.user_id = $1
+    )
+    SELECT 
+        id, 
+        total_price, 
+        status, 
+        created_at,
+        json_agg(json_build_object(
+            'book_id', book_id,
+            'name', name,
+            'quantity', quantity,
+            'price', price
+        )) as items
+    FROM order_details
+    GROUP BY id, total_price, status, created_at
+    ORDER BY created_at DESC
+    `
+
+	var orders []orderModels.HistoryOrderItem
+	var itemsJSON []byte
+
+	rows, err := r.DB.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, errors.Wrap(err, op+": failed to execute query")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order orderModels.HistoryOrderItem
+		if err := rows.Scan(&order.ID, &order.TotalPrice, &order.Status, &order.CreatedAt, &itemsJSON); err != nil {
+			return nil, errors.Wrap(err, op+": failed to scan row")
+		}
+
+		if err := json.Unmarshal(itemsJSON, &order.Items); err != nil {
+			return nil, errors.Wrap(err, op+": failed to unmarshal items")
+		}
+
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, op+": rows iteration error")
+	}
+
+	return orders, nil
 }
