@@ -71,6 +71,24 @@ func (_m *FrontService) AdminPage(ctx context.Context, params mainPageParams.Mod
 	return r0, r1
 }
 
+// CartCheckout provides a mock function with given fields: ctx, userID
+func (_m *FrontService) CartCheckout(ctx context.Context, userID string) error {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CartCheckout")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeleteBook provides a mock function with given fields: ctx, bookID
 func (_m *FrontService) DeleteBook(ctx context.Context, bookID string) error {
 	ret := _m.Called(ctx, bookID)
@@ -130,6 +148,34 @@ func (_m *FrontService) GetCartItems(ctx context.Context, userId string) (*[]ord
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, userId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// HistoryPage provides a mock function with given fields: ctx, userID
+func (_m *FrontService) HistoryPage(ctx context.Context, userID string) (string, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HistoryPage")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
 	} else {
 		r1 = ret.Error(1)
 	}

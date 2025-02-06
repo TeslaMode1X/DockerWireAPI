@@ -60,5 +60,6 @@ func ProvideSetTemplates() map[string]*template.Template {
 		"login":        template.Must(template.ParseFiles("templates/login.html")),
 		"registration": template.Must(template.ParseFiles("templates/registration.html")),
 		"admin":        template.Must(template.ParseFiles("templates/admin.html")),
+		"history":      template.Must(template.ParseFiles("templates/history.html")),
 	}
 }

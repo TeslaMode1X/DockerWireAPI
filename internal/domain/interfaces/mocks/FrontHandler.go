@@ -23,6 +23,11 @@ func (_m *FrontHandler) AdminPage(w http.ResponseWriter, r *http.Request) {
 	_m.Called(w, r)
 }
 
+// CartCheckout provides a mock function with given fields: w, r
+func (_m *FrontHandler) CartCheckout(w http.ResponseWriter, r *http.Request) {
+	_m.Called(w, r)
+}
+
 // DeleteBookFront provides a mock function with given fields: w, r
 func (_m *FrontHandler) DeleteBookFront(w http.ResponseWriter, r *http.Request) {
 	_m.Called(w, r)
@@ -35,6 +40,11 @@ func (_m *FrontHandler) EditBookFront(w http.ResponseWriter, r *http.Request) {
 
 // GetCartItems provides a mock function with given fields: w, r
 func (_m *FrontHandler) GetCartItems(w http.ResponseWriter, r *http.Request) {
+	_m.Called(w, r)
+}
+
+// HistoryPage provides a mock function with given fields: w, r
+func (_m *FrontHandler) HistoryPage(w http.ResponseWriter, r *http.Request) {
 	_m.Called(w, r)
 }
 

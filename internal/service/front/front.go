@@ -324,7 +324,6 @@ func (s *Service) GetCartItems(ctx context.Context, userId string) (*[]orderMode
 	}
 	if !exists {
 		err = s.OrderRepo.CreateUserOrder(ctx, userId)
-		fmt.Println(err)
 		if err != nil {
 			return nil, errors.Wrap(err, op)
 		}
@@ -381,4 +380,29 @@ func (s *Service) CartCheckout(ctx context.Context, userID string) error {
 	}
 
 	return nil
+}
+
+func (s *Service) HistoryPage(ctx context.Context, userID string) (string, error) {
+	const op = "service.front.HistoryPage"
+
+	orders, err := s.OrderRepo.GetOrdersByUserID(ctx, userID)
+	if err != nil {
+		return "", errors.Wrap(err, op)
+	}
+
+	var tmpl, ok = s.Templates["history"]
+	if !ok {
+		return "", errors.Wrap(errors.New("couldn't load template"), op)
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, map[string]interface{}{
+		"Title":  "Order History",
+		"Orders": orders,
+	})
+	if err != nil {
+		return "", errors.Wrap(err, op)
+	}
+
+	return buf.String(), nil
 }
