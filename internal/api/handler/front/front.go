@@ -279,6 +279,17 @@ func (h *Handler) DeleteBookFront(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin?success=book_deleted", http.StatusSeeOther)
 }
 
+// GetCartItems
+//
+// @Summary Get user's cart items
+// @Description Retrieves the list of items in the current user's cart
+// @Tags cart
+// @Accept json
+// @Produce json
+// @Success 200 {array} orderItem.OrderItem "List of cart items"
+// @Failure 401 {object} response.ResponseError "User not logged in"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/cart/items [get]
 func (h *Handler) GetCartItems(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.GetCartItems"
 
@@ -306,6 +317,20 @@ func (h *Handler) GetCartItems(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(cartItems)
 }
 
+// AddCartItems
+//
+// @Summary Add item to cart
+// @Description Adds a book to the current user's cart with an optional quantity
+// @Tags cart
+// @Accept json
+// @Produce json
+// @Param id query string true "Book ID"
+// @Param quantity query integer false "Quantity of the book to add (default: 1)"
+// @Success 303 {string} string "Redirects to main page with success message"
+// @Failure 400 {object} response.ResponseError "Invalid book ID or missing parameters"
+// @Failure 401 {object} response.ResponseError "User not logged in"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/cart/add [get]
 func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.AddCartItems"
 
@@ -364,6 +389,19 @@ func (h *Handler) AddCartItems(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?success=added_to_cart", http.StatusSeeOther)
 }
 
+// RemoveCartItem
+//
+// @Summary Remove item from cart
+// @Description Removes a book from the current user's cart by its ID
+// @Tags cart
+// @Accept json
+// @Produce json
+// @Param id query string true "Book ID"
+// @Success 303 {string} string "Redirects to main page with success message"
+// @Failure 400 {object} response.ResponseError "Invalid book ID or missing parameters"
+// @Failure 401 {object} response.ResponseError "User not logged in"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/cart/remove [post]
 func (h *Handler) RemoveCartItem(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.front.RemoveCartItem"
 

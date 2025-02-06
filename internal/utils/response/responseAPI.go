@@ -8,7 +8,7 @@ import (
 
 type ResponseError struct {
 	Error string `json:"error"`
-}
+} // @name ResponseErrorModel
 
 func WriteJson(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
 	render.Status(r, status)

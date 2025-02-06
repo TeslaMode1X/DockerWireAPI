@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/domain/interfaces"
+	_ "github.com/TeslaMode1X/DockerWireAPI/internal/domain/models/user"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/service"
 	"github.com/TeslaMode1X/DockerWireAPI/internal/utils/response"
 	"github.com/go-chi/chi"
@@ -24,6 +25,19 @@ func (h *Handler) NewUserHandler(r chi.Router) {
 	})
 }
 
+// GetUserByID
+//
+// @Summary Get user by ID
+// @Description Retrieves a user's details by their unique identifier
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200 {object} user.User "User details"
+// @Failure 400 {object} response.ResponseError "Invalid UUID format"
+// @Failure 404 {object} response.ResponseError "User not found"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/user/{id} [get]
 func (h *Handler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.user.GetUserByID"
 

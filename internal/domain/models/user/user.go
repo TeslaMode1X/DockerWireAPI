@@ -11,10 +11,10 @@ type User struct {
 	Password  string    `json:"password"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"updatedAt,omitempty"`
-}
+} // @name UserModel
 
 type Entity struct {
 	ID       string `json:"ID"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
-}
+} // @name UserModelEntity

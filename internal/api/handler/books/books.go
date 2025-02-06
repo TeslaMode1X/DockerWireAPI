@@ -28,6 +28,16 @@ func (h *Handler) NewBookHandler(r chi.Router) {
 	})
 }
 
+// GetAllBooks
+//
+// @Summary Get all books
+// @Description Retrieves a list of all books available in the system
+// @Tags books
+// @Accept json
+// @Produce json
+// @Success 200 {array} model.Book "List of books"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/book [get]
 func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.books.GetAllBooks"
 
@@ -46,6 +56,19 @@ func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	response.WriteJson(w, r, http.StatusOK, books)
 }
 
+// GetBookById
+//
+// @Summary Get book by ID
+// @Description Retrieves a single book by its unique identifier
+// @Tags books
+// @Accept json
+// @Produce json
+// @Param id path string true "Book ID"
+// @Success 200 {object} model.Book "Book details"
+// @Failure 400 {object} response.ResponseError "Invalid UUID format"
+// @Failure 404 {object} response.ResponseError "Book not found"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/book/{id} [get]
 func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.books.GetBookById"
 
@@ -73,6 +96,18 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 	response.WriteJson(w, r, http.StatusOK, book)
 }
 
+// CreateBook
+//
+// @Summary Create a new book
+// @Description Creates a new book and returns the created book ID
+// @Tags books
+// @Accept json
+// @Produce json
+// @Param request body model.Book true "Book data"
+// @Success 201 {string} string "Created book ID"
+// @Failure 400 {object} response.ResponseError "Invalid input"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/book [post]
 func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.books.CreateBook"
 
@@ -98,6 +133,20 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	response.WriteJson(w, r, http.StatusCreated, id)
 }
 
+// UpdateBookById
+//
+// @Summary Update a book by ID
+// @Description Updates an existing book by its unique identifier
+// @Tags books
+// @Accept json
+// @Produce json
+// @Param id path string true "Book ID"
+// @Param request body model.Book true "Updated book data"
+// @Success 200 {string} string "Updated book ID"
+// @Failure 400 {object} response.ResponseError "Invalid UUID format or input"
+// @Failure 404 {object} response.ResponseError "Book not found"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/book/{id} [put]
 func (h *Handler) UpdateBookById(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.books.UpdateBookById"
 
@@ -132,6 +181,19 @@ func (h *Handler) UpdateBookById(w http.ResponseWriter, r *http.Request) {
 	response.WriteJson(w, r, http.StatusOK, updateId)
 }
 
+// DeleteBookById
+//
+// @Summary Delete a book by ID
+// @Description Deletes an existing book by its unique identifier
+// @Tags books
+// @Accept json
+// @Produce json
+// @Param id path string true "Book ID"
+// @Success 200 {string} string "Book successfully deleted!"
+// @Failure 400 {object} response.ResponseError "Invalid UUID format"
+// @Failure 404 {object} response.ResponseError "Book not found"
+// @Failure 500 {object} response.ResponseError "Internal server error"
+// @Router /api/v1/book/{id} [delete]
 func (h *Handler) DeleteBookById(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.books.DeleteBookById"
 

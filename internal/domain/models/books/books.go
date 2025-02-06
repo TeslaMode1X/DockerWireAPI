@@ -8,4 +8,4 @@ type Book struct {
 	Author string    `json:"author"`
 	Price  float64   `json:"price"`
 	Stock  int       `json:"stock"`
-}
+} // @name BookModel

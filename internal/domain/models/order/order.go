@@ -7,4 +7,4 @@ type Model struct {
 	UserID     uuid.UUID `json:"user_id"`
 	Status     string    `json:"status"`
 	TotalPrice float64   `json:"total_price"`
-}
+} // @name OrderModel
