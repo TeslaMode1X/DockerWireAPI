@@ -109,7 +109,6 @@ func (h *Handler) AlterUserOrder(w http.ResponseWriter, r *http.Request) {
 		slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
 
-	// 1) Достаём userID из контекста
 	userID, ok := r.Context().Value("user_id").(string)
 	if !ok {
 		h.Log.Error("user ID not found in context")
@@ -117,7 +116,6 @@ func (h *Handler) AlterUserOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2) Достаём orderId из chi URL
 	orderID := chi.URLParam(r, "orderId")
 	if orderID == "" {
 		h.Log.Error("order ID not found in URL param")
@@ -125,7 +123,6 @@ func (h *Handler) AlterUserOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3) Вызываем сервисный метод AlterUserOrderByID
 	err := h.Svc.AlterUserOrderByID(r.Context(), userID, orderID)
 	if err != nil {
 		h.Log.Error("failed to alter order", "error", err)
@@ -133,7 +130,6 @@ func (h *Handler) AlterUserOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4) Если всё в порядке, отправляем положительный ответ
 	response.WriteJson(w, r, http.StatusOK, "Order paid successfully")
 }
 
@@ -154,7 +150,7 @@ func (h *Handler) AddOrderItemIntoOrder(w http.ResponseWriter, r *http.Request) 
 
 	var req orderModels.CreateOrderItemRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
-		h.Log.Error("failed to decode request body", err)
+		h.Log.Error("failed to decode request body", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}

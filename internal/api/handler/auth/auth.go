@@ -31,7 +31,6 @@ func (h *Handler) NewAuthHandler(r chi.Router) {
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.auth.Registration"
-
 	h.Log = h.Log.With(
 		slog.String("op", op),
 		slog.String("request_id", middleware.GetReqID(r.Context())),
@@ -39,7 +38,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	var user model.Registration
 	if err := jsonReader.ReadJSON(w, r, &user); err != nil {
-		h.Log.Error("failed to decode json body", err)
+		h.Log.Error("failed to decode json body", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, errors.New("failed to decode request body"))
 		return
 	}
@@ -55,12 +54,10 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			response.WriteError(w, r, http.StatusBadRequest, fmt.Sprintf("%v", service.ErrUserAlreadyExists))
 			return
 		}
-
 		if errors.Is(err, service.ErrNotFound) {
 			response.WriteError(w, r, http.StatusBadRequest, fmt.Sprintf("%v", service.ErrNotFound))
 			return
 		}
-
 		response.WriteError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -84,7 +81,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	var userCurrent model.Login
 	if err := jsonReader.ReadJSON(w, r, &userCurrent); err != nil {
-		h.Log.Error("failed to decode request body", err)
+		h.Log.Error("failed to decode request body", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, errors.New("failed to decode request body"))
 		return
 	}

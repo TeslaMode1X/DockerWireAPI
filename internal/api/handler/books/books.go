@@ -38,7 +38,7 @@ func (h *Handler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 
 	books, err := h.Svc.GetAllBooks(context.Background())
 	if err != nil {
-		h.Log.Error("error getting all books", err)
+		h.Log.Error("error getting all books", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -58,14 +58,14 @@ func (h *Handler) GetBookById(w http.ResponseWriter, r *http.Request) {
 
 	parsedID, err := uuid.FromString(id)
 	if err != nil {
-		h.Log.Error("failed to parse UUID", err)
+		h.Log.Error("failed to parse UUID", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	book, err := h.Svc.GetBookById(context.Background(), parsedID)
 	if err != nil {
-		h.Log.Error("error getting book", err)
+		h.Log.Error("error getting book", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -83,14 +83,14 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 
 	var newBook model.Book
 	if err := render.DecodeJSON(r.Body, &newBook); err != nil {
-		h.Log.Error("failed to decode request body", err)
+		h.Log.Error("failed to decode request body", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	id, err := h.Svc.CreateBook(context.Background(), newBook)
 	if err != nil {
-		h.Log.Error("error creating book", err)
+		h.Log.Error("error creating book", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -110,21 +110,21 @@ func (h *Handler) UpdateBookById(w http.ResponseWriter, r *http.Request) {
 
 	parsedID, err := uuid.FromString(id)
 	if err != nil {
-		h.Log.Error("failed to parse UUID", err)
+		h.Log.Error("failed to parse UUID", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	var newBook model.Book
 	if err := render.DecodeJSON(r.Body, &newBook); err != nil {
-		h.Log.Error("failed to decode request body", err)
+		h.Log.Error("failed to decode request body", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	updateId, err := h.Svc.UpdateBookById(context.Background(), newBook, parsedID)
 	if err != nil {
-		h.Log.Error("error updating book", err)
+		h.Log.Error("error updating book", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -144,14 +144,14 @@ func (h *Handler) DeleteBookById(w http.ResponseWriter, r *http.Request) {
 
 	parsedID, err := uuid.FromString(id)
 	if err != nil {
-		h.Log.Error("failed to parse UUID", err)
+		h.Log.Error("failed to parse UUID", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusBadRequest, err)
 		return
 	}
 
 	err = h.Svc.DeleteBookById(context.Background(), parsedID)
 	if err != nil {
-		h.Log.Error("error deleting book", err)
+		h.Log.Error("error deleting book", slog.String("error", err.Error()))
 		response.WriteError(w, r, http.StatusInternalServerError, err)
 		return
 	}
