@@ -76,6 +76,7 @@ func (s *Service) MainPage(ctx context.Context, params mainPageParams.Model) (st
 		"Success":     params.SuccessMessage,
 		"SearchQuery": params.SearchQuery,
 		"UserName":    params.UserName,
+		"Role":        params.Role,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, op)

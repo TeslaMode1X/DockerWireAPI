@@ -7,4 +7,5 @@ type Model struct {
 	SearchQuery    string
 	SortBy         string
 	UserName       string
+	Role           int
 } // @name MainPageModelParams
