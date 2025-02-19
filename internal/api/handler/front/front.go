@@ -48,7 +48,7 @@ func (h *Handler) NewFrontEndHandler(r chi.Router) {
 
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(middle.WithAuth)
-			//r.Use(middle.AdminMiddleware)
+			r.Use(middle.AdminMiddleware)
 			r.Get("/", h.AdminPage)
 
 			r.Post("/edit/{id}", h.EditBookFront)
@@ -75,6 +75,28 @@ func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	roleValue := r.Context().Value("role")
+	var role int
+
+	switch v := roleValue.(type) {
+	case int:
+		role = v
+	case float64:
+		role = int(v)
+	case string:
+		var err error
+		role, err = strconv.Atoi(v)
+		if err != nil {
+			h.Log.Error("failed to convert role to int", slog.String("error", err.Error()))
+			role = 0
+		}
+	default:
+		h.Log.Error("unexpected type for role", slog.Any("type", fmt.Sprintf("%T", v)))
+		role = 0
+	}
+
+	fmt.Println(role)
+
 	params := mainPageParams.Model{
 		Page:           "main",
 		ErrorMessage:   r.URL.Query().Get("error"),
@@ -82,6 +104,7 @@ func (h *Handler) MainPage(w http.ResponseWriter, r *http.Request) {
 		SearchQuery:    r.URL.Query().Get("search"),
 		SortBy:         r.URL.Query().Get("sort"),
 		UserName:       userName,
+		Role:           role,
 	}
 
 	mainPageHTML, err := h.Svc.MainPage(r.Context(), params)
@@ -236,7 +259,7 @@ func (h *Handler) HistoryPage(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("user_id").(string)
 	if !ok {
-		h.Log.Error("Error getting userId from context", "error")
+		h.Log.Error("Error getting userId from context", slog.String("error", ""))
 		http.Error(w, "Bad Request Error", http.StatusBadRequest)
 		return
 	}

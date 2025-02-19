@@ -31,14 +31,7 @@ func WithAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		role, err := getRoleFromToken(token)
-		if err != nil {
-			permissionDenied(w, r, "unable to get user role from token")
-			return
-		}
-
 		ctx := context.WithValue(r.Context(), "user_id", userID)
-		ctx = context.WithValue(ctx, "role", role)
 		r = r.WithContext(ctx)
 
 		handler.ServeHTTP(w, r)
@@ -66,7 +59,15 @@ func WithOptionalAuth(handler http.Handler) http.Handler {
 			return
 		}
 
+		role, err := getRoleFromToken(token)
+		if err != nil {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), "user_id", userID)
+		ctx = context.WithValue(ctx, "role", role)
+
 		r = r.WithContext(ctx)
 
 		handler.ServeHTTP(w, r)
